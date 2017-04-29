@@ -25,8 +25,6 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-// Replace groupevaluation with the name of your module and remove this line.
-
 require_once(dirname(dirname(dirname(__FILE__))).'/config.php');
 require_once(dirname(__FILE__).'/lib.php');
 
@@ -45,39 +43,64 @@ if ($id) {
     error('You must specify a course_module ID or an instance ID');
 }
 
+// Check login and get context.
 require_login($course, true, $cm);
+$context = context_module::instance($cm->id);
 
-$event = \mod_groupevaluation\event\course_module_viewed::create(array(
-    'objectid' => $PAGE->cm->instance,
-    'context' => $PAGE->context,
-));
-$event->add_record_snapshot('course', $PAGE->course);
-$event->add_record_snapshot($PAGE->cm->modname, $groupevaluation);
-$event->trigger();
+$url = new moodle_url($CFG->wwwroot.'/mod/groupevaluation/view.php');
+if (isset($id)) {
+    $url->param('id', $id);
+} else {
+    $url->param('a', $a);
+}
+if (isset($sid)) {
+    $url->param('sid', $sid);
+}
+
+$PAGE->set_url($url);
+$PAGE->set_context($context);
 
 // Print the page header.
-
-$PAGE->set_url('/mod/groupevaluation/view.php', array('id' => $cm->id));
 $PAGE->set_title(format_string($groupevaluation->name));
 $PAGE->set_heading(format_string($course->fullname));
 
-/*
- * Other things you may want to set - remove if not needed.
- * $PAGE->set_cacheable(false);
- * $PAGE->set_focuscontrol('some-html-id');
- * $PAGE->add_body_class('groupevaluation-'.$somevar);
- */
-
-// Output starts here.
 echo $OUTPUT->header();
+echo $OUTPUT->heading(format_string($groupevaluation->name));
 
-// Conditions to show the intro can change to look for own settings or whatever.
+// Print the main part of the page.
 if ($groupevaluation->intro) {
-    echo $OUTPUT->box(format_module_intro('groupevaluation', $groupevaluation, $cm->id), 'generalbox mod_introbox', 'groupevaluationintro');
+    echo $OUTPUT->box(format_module_intro('groupevaluation', $groupevaluation, $cm->id), 'generalbox', 'intro');
 }
 
-// Replace the following lines with you own code.
-echo $OUTPUT->heading('Funciona');
+echo $OUTPUT->box_start('generalbox boxaligncenter boxwidthwide');
+
+$currentgroupid = groups_get_activity_group($cm);
+if (!groups_is_member($currentgroupid, $USER->id)) {
+    $currentgroupid = 0;
+}
+
+$numusers = 0; //borrar TODO
+if (has_capability('mod/groupevaluation:readresponses', $context)) {
+    echo "<div class=\"reportlink\"><a href=\"report.php?id=$cm->id\">".
+          get_string("viewgroupevaluationresponses", "groupevaluation", $numusers)."</a></div>";
+} else if (!$cm->visible) {
+    notice(get_string("activityiscurrentlyhidden"));
+}
+//***************************************************
+
+//$result = $DB->get_records_sql('SELECT COUNT(*) FROM groupevaluation_surveys WHERE groupevaluationid = ?', array($groupevaluation->id));
+$table = 'groupevaluation_surveys';
+$select = "groupevaluationid = $groupevaluation->id"; //is put into the where clause
+$result = $DB->get_records_select($table,$select);
+if (!$result) {
+  echo '<a href="'.$CFG->wwwroot.htmlspecialchars('/mod/groupevaluation/criterions.php?'.'id='.$cm->id).'">'.'<strong>'.get_string("createsurvey", "groupevaluation").'</strong></a>';
+} else {
+  echo '<a href="'.$CFG->wwwroot.htmlspecialchars('/mod/groupevaluation/criterions.php?'.'id='.$cm->id).'">'.'<strong>'.get_string("editsurvey", "groupevaluation").'</strong></a>';
+}
+
+
+//echo $OUTPUT->box_end();
+
 
 // Finish the page.
 echo $OUTPUT->footer();

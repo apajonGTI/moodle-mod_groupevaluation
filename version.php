@@ -28,7 +28,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'mod_groupevaluation';
-$plugin->version  = 2017033016;  // The current module version (Date: YYYYMMDDXX)
+$plugin->version  = 2017040315;  // The current module version (Date: YYYYMMDDXX)
 $plugin->release = 'v0.0';
 $plugin->requires = 2014051200;
 $plugin->maturity = MATURITY_ALPHA;

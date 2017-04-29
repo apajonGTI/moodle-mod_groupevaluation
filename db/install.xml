@@ -17,6 +17,10 @@
         <FIELD NAME="timeclose" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Time when the groupevaluation was finished. 0 if the groupevaluation has not been submitted yet."/>
         <FIELD NAME="useexamples" TYPE="int" LENGTH="2" NOTNULL="false" DEFAULT="0" SEQUENCE="false" COMMENT="Comment"/>
         <FIELD NAME="grade" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="100" SEQUENCE="false" COMMENT="The maximum grade. Can be negative to indicate the use of a scale."/>
+        <FIELD NAME="hardlowerdeviation" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="100" SEQUENCE="false" COMMENT="Above this limit, it is considerated a hard deviation."/>
+        <FIELD NAME="hardupperdeviation" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="100" SEQUENCE="false" COMMENT="Below this limit, it is considerated a hard deviation."/>
+        <FIELD NAME="softlowerdeviation" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="100" SEQUENCE="false" COMMENT="Above this limit, it is considerated a soft deviation."/>
+        <FIELD NAME="softupperdeviation" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="100" SEQUENCE="false" COMMENT="Below this limit, it is considerated a soft deviation."/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
@@ -55,7 +59,7 @@
     </TABLE>
 
     <!--> Tabla hecha <-->
-    <TABLE NAME="groupevaluation_criterion" COMMENT="Stores the criteria that can be used in surveys.">
+    <TABLE NAME="groupevaluation_criterions" COMMENT="Stores the criterions that can be used in surveys.">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="surveyid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
@@ -68,7 +72,7 @@
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="createdby" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="modifiedby" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
-        <FIELD NAME="hidden" TYPE="char" LENGTH="1" NOTNULL="true" DEFAULT="n" SEQUENCE="false"/>
+        <FIELD NAME="special" TYPE="char" LENGTH="1" NOTNULL="true" DEFAULT="n" SEQUENCE="false"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
@@ -77,13 +81,14 @@
     </TABLE>
 
     <!--> Tabla hecha <-->
+    <!--> TODO Poner bien los comments <-->
     <TABLE NAME="groupevaluation_assessments" COMMENT="Info about the made assessment.">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="surveyid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The id of the survey"/>
         <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The id of the user who makes this assessment"/>
         <FIELD NAME="criterionid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The id of the criterion"/>
-        <FIELD NAME="answer" TYPE="number" LENGTH="10" NOTNULL="false" SEQUENCE="false" DECIMALS="5" COMMENT="The answer for this criterion. If NULL then it has not been answered yet."/>
+        <FIELD NAME="assessment" TYPE="number" LENGTH="10" NOTNULL="false" SEQUENCE="false" DECIMALS="5" COMMENT="The answer for this criterion. If NULL then it has not been answered yet."/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
@@ -132,12 +137,30 @@
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-        <KEY NAME="groupevaluationid" TYPE="foreign" FIELDS="groupevaluation" REFTABLE="groupevaluation" REFFIELDS="id"/>
+        <KEY NAME="groupevaluationid" TYPE="foreign" FIELDS="groupevaluationid" REFTABLE="groupevaluation" REFFIELDS="id"/>
         <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
       </KEYS>
       <INDEXES>
         <INDEX NAME="userid" UNIQUE="false" FIELDS="userid"/>
         <!--><INDEX NAME="grade" UNIQUE="true" FIELDS="groupevaluationid, userid"/><-->
+      </INDEXES>
+    </TABLE>
+
+    <!--> Tabla hecha <-->
+    <TABLE NAME="groupevaluation_tags" COMMENT="Stores the possible tags associated with a criterion.">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
+        <FIELD NAME="criterionid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references criterion.id."/>
+        <FIELD NAME="text" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="Description of the answer"/>
+        <FIELD NAME="value" TYPE="number" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" DECIMALS="5" COMMENT="Numerical value associated with this tags."/>
+        <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The last time this grade changed."/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="criterionid" TYPE="foreign" FIELDS="criterionid" REFTABLE="groupevaluation_criterion" REFFIELDS="id"/>
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="userid" UNIQUE="false" FIELDS="criterionid"/>
       </INDEXES>
     </TABLE>
 

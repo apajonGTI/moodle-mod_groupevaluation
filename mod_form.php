@@ -66,7 +66,6 @@ class mod_groupevaluation_mod_form extends moodleform_mod {
 
         // -------------------------------------------------------------------------------
         $mform->addElement('header', 'timing', get_string('timing', 'groupevaluation'));
-
         // Open and close dates.
         $mform->addElement('date_time_selector', 'timeopen', get_string('groupevaluationopen', 'groupevaluation'),
                 self::$datefieldoptions);
@@ -74,6 +73,39 @@ class mod_groupevaluation_mod_form extends moodleform_mod {
 
         $mform->addElement('date_time_selector', 'timeclose', get_string('groupevaluationclose', 'groupevaluation'),
                 self::$datefieldoptions);
+
+        // -------------------------------------------------------------------------------
+        $mform->addElement('header', 'deviationlimits', get_string('deviationlimits', 'groupevaluation'));
+        $mform->addHelpButton('deviationlimits', 'deviationlimits', 'groupevaluation');
+
+        $mform->addElement('text', 'softupperdeviation', get_string('softupperdeviation', 'groupevaluation'));
+        $mform->setType('softupperdeviation', PARAM_INT);
+        $mform->addHelpButton('softupperdeviation', 'softupperdeviation', 'groupevaluation');
+        $mform->setDefault('softupperdeviation', 20);
+
+        $mform->addElement('text', 'softlowerdeviation', get_string('softlowerdeviation', 'groupevaluation'));
+        $mform->setType('softlowerdeviation', PARAM_INT);
+        $mform->addHelpButton('softlowerdeviation', 'softlowerdeviation', 'groupevaluation');
+        $mform->setDefault('softlowerdeviation', -20);
+
+        $mform->addElement('text', 'hardupperdeviation', get_string('hardupperdeviation', 'groupevaluation'));
+        $mform->setType('hardupperdeviation', PARAM_INT);
+        $mform->addHelpButton('hardupperdeviation', 'hardupperdeviation', 'groupevaluation');
+        $mform->setDefault('hardupperdeviation', 40);
+
+        $mform->addElement('text', 'hardlowerdeviation', get_string('hardlowerdeviation', 'groupevaluation'));
+        $mform->setType('hardlowerdeviation', PARAM_INT);
+        $mform->addHelpButton('hardlowerdeviation', 'hardlowerdeviation', 'groupevaluation');
+        $mform->setDefault('hardlowerdeviation', -40);
+
+        // -------------------------------------------------------------------------------
+        $mform->addElement('header', 'results', get_string('results', 'groupevaluation'));
+        $mform->addHelpButton('results', 'results', 'groupevaluation');
+        $mform->addElement('advcheckbox', 'fieldmaxassessment', get_string('fieldmaxassessment', 'groupevaluation'), null, array('group' => 1, ), array(0, 1));
+        $mform->addElement('advcheckbox', 'fieldminassessment', get_string('fieldminassessment', 'groupevaluation'), null, array('group' => 1, ), array(0, 1));
+        $mform->addElement('advcheckbox', 'fieldselfassessment', get_string('fieldselfassessment', 'groupevaluation'), null, array('group' => 1, ), array(0, 1));
+        $mform->addElement('advcheckbox', 'fielddeviation', get_string('fielddeviation', 'groupevaluation'), null, array('group' => 1, ), array(0, 1));
+        $mform->addElement('advcheckbox', 'fieldassessment', get_string('fieldassessment', 'groupevaluation'), null, array('group' => 1, ), array(0, 1));
 
         // Add standard grading elements.
         $this->standard_grading_coursemodule_elements();

@@ -28,6 +28,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 /*
+ * TODO Probablemente no utilice esta funcion -> BORRAR
  * Does something really useful with the passed things
  *
  * @param array $things
@@ -36,3 +37,22 @@ defined('MOODLE_INTERNAL') || die();
  *    return new stdClass();
  *}
  */
+ function groupevaluation_delete_responses($qid) {
+     global $DB;
+
+     $status = true;
+
+     // Delete all of the response data for a question.
+     $DB->delete_records('questionnaire_response_bool', array('question_id' => $qid));
+     $DB->delete_records('questionnaire_response_date', array('question_id' => $qid));
+     $DB->delete_records('questionnaire_resp_multiple', array('question_id' => $qid));
+     $DB->delete_records('questionnaire_response_other', array('question_id' => $qid));
+     $DB->delete_records('questionnaire_response_rank', array('question_id' => $qid));
+     $DB->delete_records('questionnaire_resp_single', array('question_id' => $qid));
+     $DB->delete_records('questionnaire_response_text', array('question_id' => $qid));
+
+     $status = $status && $DB->delete_records('questionnaire_response', array('id' => $qid));
+     $status = $status && $DB->delete_records('questionnaire_attempts', array('rid' => $qid));
+
+     return $status;
+ }
