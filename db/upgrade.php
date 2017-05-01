@@ -42,6 +42,31 @@ function xmldb_groupevaluation_upgrade($oldversion) {
 
     $dbman = $DB->get_manager(); // Loads ddl manager and xmldb classes.
 
+
+    /*$table = new xmldb_table('groupevaluation');
+    $dbman->drop_table($table, $continue=true, $feedback=true);
+
+    $table = new xmldb_table('mdl_groupevaluation');
+    $dbman->drop_table($table, $continue=true, $feedback=true);
+
+    $table = new xmldb_table('mdl_groupevaluation_surveys');
+    $dbman->drop_table($table, $continue=true, $feedback=true);
+
+    $table = new xmldb_table('mdl_groupevaluation_criterions');
+    $dbman->drop_table($table, $continue=true, $feedback=true);
+
+    $table = new xmldb_table('mdl_groupevaluation_assessments');
+    $dbman->drop_table($table, $continue=true, $feedback=true);
+
+    $table = new xmldb_table('mdl_groupevaluation_results');
+    $dbman->drop_table($table, $continue=true, $feedback=true);
+
+    $table = new xmldb_table('mdl_groupevaluation_grades');
+    $dbman->drop_table($table, $continue=true, $feedback=true);
+
+    $table = new xmldb_table('mdl_groupevaluation_tags');
+    $dbman->drop_table($table, $continue=true, $feedback=true);*/
+
     /*
      * And upgrade begins here. For each one, you'll need one
      * block of code similar to the next one. Please, delete

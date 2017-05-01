@@ -23,12 +23,13 @@
 require_once("../../config.php");
 require_once($CFG->dirroot.'/mod/groupevaluation/criterions_form.php');
 
-$id     = required_param('id', PARAM_INT);                 // Course module ID
-$action = optional_param('action', 'main', PARAM_ALPHA);   // Screen.
-$ctrid    = optional_param('ctrid', 0, PARAM_INT);             // Question id.
-$moveq  = optional_param('moveq', 0, PARAM_INT);           // Question id to move.
-$delctr   = optional_param('delctr', 0, PARAM_INT);             // Question id to delete
-$qtype  = optional_param('type_id', 0, PARAM_INT);         // Question type.
+//($parname, $default, $type)
+$id     = required_param('id', PARAM_INT);               // Course module ID
+$action = optional_param('action', 'main', PARAM_ALPHA); // Screen.
+$crtid    = optional_param('crtid', 0, PARAM_INT);       // criterion id.
+$moveq  = optional_param('moveq', 0, PARAM_INT);         // criterion id to move.
+$delcrt   = optional_param('delcrt', 0, PARAM_INT);      // criterion id to delete
+$qtype  = optional_param('type_id', 0, PARAM_INT);       // criterion type.
 $currentgroupid = optional_param('group', 0, PARAM_INT); // Group id.
 
 if (! $cm = get_coursemodule_from_id('groupevaluation', $id)) {
@@ -48,8 +49,8 @@ $context = context_module::instance($cm->id);
 
 $url = new moodle_url($CFG->wwwroot.'/mod/groupevaluation/criterions.php');
 $url->param('id', $id);
-if ($ctrid) {
-    $url->param('ctrid', $ctrid);
+if ($crtid) {
+    $url->param('crtid', $crtid);
 }
 
 $PAGE->set_url($url);
@@ -66,18 +67,19 @@ $SESSION->groupevaluation->current_tab = 'criterions';
 $reload = false;
 // Process form data.
 
+$groupevaluationid = $groupevaluation->id;
+$criterions = $DB->get_records('groupevaluation_criterions', array('groupevaluationid' => $groupevaluationid), 'id');
+
 // Delete criterion button has been pressed in criterions_form AND deletion has been confirmed on the confirmation page.
-if ($delctr) {
-    $ctrid = $delctr;
-    $groupevaluationid = $groupevaluation->id;
+if ($delcrt) {
+    $crtid = $delcrt;
 
-    // Need to reload questions before setting deleted question to 'y'.
-    $criterions = $DB->get_records('groupevaluation_criterions', array('groupevaluationid' => $groupevaluationid), 'id');
-    $DB->delete_records('groupevaluation_criterions', array('id' => $ctrid, 'groupevaluationid' => $groupevaluationid));
+    // Need to reload criterions before setting deleted criterion to 'y'.
+    $DB->delete_records('groupevaluation_criterions', array('id' => $crtid, 'groupevaluationid' => $groupevaluationid));
 
-    // Just in case the page is refreshed (F5) after a question has been deleted.
-    if (isset($criterions[$ctrid])) {
-        $select = 'groupevaluationid = '.$groupevaluationid.' AND position > '.$criterions[$ctrid]->position;
+    // Just in case the page is refreshed (F5) after a criterion has been deleted.
+    if (isset($criterions[$crtid])) {
+        $select = 'groupevaluationid = '.$groupevaluationid.' AND position > '.$criterions[$crtid]->position;
     } else {
         redirect($CFG->wwwroot.'/mod/groupevaluation/criterions.php?id='.$cm->id);
     }
@@ -88,44 +90,40 @@ if ($delctr) {
         }
     }
 
-    //// Delete responses to that deleted question.
-    //groupevaluation_delete_responses($ctrid);
+    //// Delete responses to that deleted criterion.
+    //groupevaluation_delete_responses($crtid);
 
-    /* AQUI */
 
-    // If no questions left in this questionnaire, remove all attempts and responses.
-    if (!$criterions = $DB->get_records('groupevaluation_criterions', array('groupevaluationid' => $groupevaluationid), 'id') ) {
-        $DB->delete_records('questionnaire_tags', array('criterionid' => $ctrid));
-        $DB->delete_records('questionnaire_assessments', array('criterionid' => $ctrid));
+    // If no criterions left in this groupevaluation, remove all attempts and responses.
+    if (!$criterions) {
+        $DB->delete_records('groupevaluation_tags', array('criterionid' => $crtid));
+        $DB->delete_records('groupevaluation_assessments', array('criterionid' => $crtid));
     }
 
 
-    // Log question deleted event.
+    // Log criterion deleted event.
     $context = context_module::instance($cm->id);
-    $questiontype = $qtypenames[$qtype];
+    $crtname = $criterions[$crtid]->name;
     $params = array(
                     'context' => $context,
-                    'courseid' => $questionnaire->course->id,
-                    'other' => array('questiontype' => $questiontype)
+                    'courseid' => $groupevaluation->courseid,
+                    'other' => array('criterionname' => $crtname)
     );
-    $event = \mod_questionnaire\event\question_deleted::create($params);
+    $event = \mod_groupevaluation\event\criterion_deleted::create($params);
     $event->trigger();
 
-    if ($questionnairehasdependencies) {
-        $SESSION->questionnaire->validateresults = questionnaire_check_page_breaks($questionnaire);
-    }
     $reload = true;
 }
 
 if ($action == 'main') {
-    $criterionsform = new groupevaluation_criterions_form('questions.php', $moveq);
-    $sdata = clone($questionnaire->survey);
-    $sdata->sid = $questionnaire->survey->id;
+    $criterionsform = new groupevaluation_criterions_form('criterions.php', $moveq);
+    $sdata = clone($groupevaluation);
     $sdata->id = $cm->id;
-    if (!empty($questionnaire->questions)) {
+
+    if (!empty($criterions)) {
         $pos = 1;
-        foreach ($questionnaire->questions as $ctridx => $question) {
-            $sdata->{'pos_'.$ctridx} = $pos;
+        foreach ($criterions as $criterionx) {
+            $sdata->{'pos_'.$criterionx->id} = $pos;
             $pos++;
         }
     }
@@ -133,489 +131,375 @@ if ($action == 'main') {
     if ($criterionsform->is_cancelled()) {
         // Switch to main screen.
         $action = 'main';
-        redirect($CFG->wwwroot.'/mod/questionnaire/questions.php?id='.$questionnaire->cm->id);
+        redirect($CFG->wwwroot.'/mod/groupevaluation/criterions.php?id='.$cm->id);
         $reload = true;
     }
-    if ($qformdata = $criterionsform->get_data()) {
+    if ($crtformdata = $criterionsform->get_data()) {
         // Quickforms doesn't return values for 'image' input types using 'exportValue', so we need to grab
         // it from the raw submitted data.
         $exformdata = data_submitted();
 
         if (isset($exformdata->movebutton)) {
-            $qformdata->movebutton = $exformdata->movebutton;
+            $crtformdata->movebutton = $exformdata->movebutton;
         } else if (isset($exformdata->moveherebutton)) {
-            $qformdata->moveherebutton = $exformdata->moveherebutton;
+            $crtformdata->moveherebutton = $exformdata->moveherebutton;
         } else if (isset($exformdata->editbutton)) {
-            $qformdata->editbutton = $exformdata->editbutton;
+            $crtformdata->editbutton = $exformdata->editbutton;
         } else if (isset($exformdata->removebutton)) {
-            $qformdata->removebutton = $exformdata->removebutton;
+            $crtformdata->removebutton = $exformdata->removebutton;
         } else if (isset($exformdata->requiredbutton)) {
-            $qformdata->requiredbutton = $exformdata->requiredbutton;
+            $crtformdata->requiredbutton = $exformdata->requiredbutton;
         }
 
         // Insert a section break.
-        if (isset($qformdata->removebutton)) {
+        if (isset($crtformdata->removebutton)) {
             // Need to use the key, since IE returns the image position as the value rather than the specified
             // value in the <input> tag.
-            $ctrid = key($qformdata->removebutton);
-            $qtype = $questionnaire->questions[$ctrid]->type_id;
+            $crtid = key($crtformdata->removebutton);
 
-            // Delete section breaks without asking for confirmation.
-            if ($qtype == QUESPAGEBREAK) {
-                redirect($CFG->wwwroot.'/mod/questionnaire/questions.php?id='.$questionnaire->cm->id.'&amp;delctr='.$ctrid);
-            }
-            if ($questionnairehasdependencies) {
-                $haschildren  = questionnaire_get_descendants ($questionnaire->questions, $ctrid);
-            }
-            if (count($haschildren) != 0) {
-                $action = "confirmdelctruestionparent";
-            } else {
-                $action = "confirmdelctruestion";
-            }
+            $action = "confirmdelcriterion";
 
-        } else if (isset($qformdata->editbutton)) {
-            // Switch to edit question screen.
-            $action = 'question';
+        } else if (isset($crtformdata->editbutton)) {
+            // Switch to edit criterion screen.
+            $action = 'criterion';
             // Need to use the key, since IE returns the image position as the value rather than the specified
             // value in the <input> tag.
-            $ctrid = key($qformdata->editbutton);
+            $crtid = key($crtformdata->editbutton);
             $reload = true;
 
-        } else if (isset($qformdata->requiredbutton)) {
-            // Need to use the key, since IE returns the image position as the value rather than the specified
-            // value in the <input> tag.
+        } else if (isset($crtformdata->addcrtbutton)) {
 
-            $ctrid = key($qformdata->requiredbutton);
-            if ($questionnaire->questions[$ctrid]->required == 'y') {
-                $DB->set_field('questionnaire_question', 'required', 'n', array('id' => $ctrid, 'survey_id' => $sid));
-
-            } else {
-                $DB->set_field('questionnaire_question', 'required', 'y', array('id' => $ctrid, 'survey_id' => $sid));
-            }
-
+            // Switch to edit criterion screen.
+            $action = 'criterion';
+            $crtid = 0;
             $reload = true;
 
-        } else if (isset($qformdata->addqbutton)) {
-            if ($qformdata->type_id == QUESPAGEBREAK) { // Adding section break is handled right away....
-                $sql = 'SELECT MAX(position) as maxpos FROM {questionnaire_question} '.
-                       'WHERE survey_id = '.$qformdata->sid.' AND deleted = \'n\'';
-                if ($record = $DB->get_record_sql($sql)) {
-                    $pos = $record->maxpos + 1;
-                } else {
-                    $pos = 1;
-                }
-                $question = new stdClass();
-                $question->survey_id = $qformdata->sid;
-                $question->type_id = QUESPAGEBREAK;
-                $question->position = $pos;
-                $question->content = 'break';
-                $DB->insert_record('questionnaire_question', $question);
-                $reload = true;
-            } else {
-                // Switch to edit question screen.
-                $action = 'question';
-                $qtype = $qformdata->type_id;
-                $ctrid = 0;
-                $reload = true;
-            }
 
-        } else if (isset($qformdata->movebutton)) {
+        } else if (isset($crtformdata->movebutton)) {
             // Nothing I do will seem to reload the form with new data, except for moving away from the page, so...
-            redirect($CFG->wwwroot.'/mod/questionnaire/questions.php?id='.$questionnaire->cm->id.
-                     '&moveq='.key($qformdata->movebutton));
+            redirect($CFG->wwwroot.'/mod/groupevaluation/criterions.php?id='.$cm->id.
+                     '&moveq='.key($crtformdata->movebutton));
             $reload = true;
 
-
-
-        } else if (isset($qformdata->moveherebutton)) {
+        } else if (isset($crtformdata->moveherebutton)) {
             // Need to use the key, since IE returns the image position as the value rather than the specified
             // value in the <input> tag.
 
-            // No need to move question if new position = old position!
-            $qpos = key($qformdata->moveherebutton);
-            if ($qformdata->moveq != $qpos) {
-                $questionnaire->move_question($qformdata->moveq, $qpos);
-            }
-            if ($questionnairehasdependencies) {
-                $SESSION->questionnaire->validateresults = questionnaire_check_page_breaks($questionnaire);
+            // No need to move criterion if new position = old position!
+            $crtpos = key($crtformdata->moveherebutton);
+            if ($crtformdata->moveq != $crtpos) {
+                move_criterion($criterions, $crtformdata->moveq, $crtpos);
             }
             // Nothing I do will seem to reload the form with new data, except for moving away from the page, so...
-            redirect($CFG->wwwroot.'/mod/questionnaire/questions.php?id='.$questionnaire->cm->id);
-            $reload = true;
-
-        } else if (isset($qformdata->validate)) {
-            // Validates page breaks for depend questions.
-            $SESSION->questionnaire->validateresults = questionnaire_check_page_breaks($questionnaire);
+            redirect($CFG->wwwroot.'/mod/groupevaluation/criterions.php?id='.$cm->id);
             $reload = true;
         }
     }
 
 
-} else if ($action == 'question') {
-    if ($ctrid != 0) {
-        $question = clone($questionnaire->questions[$ctrid]);
-        $question->ctrid = $question->id;
-        $question->sid = $questionnaire->survey->id;
-        $question->id = $cm->id;
-        $draftideditor = file_get_submitted_draft_itemid('question');
-        $content = file_prepare_draft_area($draftideditor, $context->id, 'mod_questionnaire', 'question',
-                                           $ctrid, array('subdirs' => true), $question->content);
-        $question->content = array('text' => $content, 'format' => FORMAT_HTML, 'itemid' => $draftideditor);
+} else if ($action == 'criterion') {
+    if ($crtid != 0) {
+        $criterion = clone($criterions[$crtid]);
+        $criterion->crtid = $criterion->id;
+        $criterion->groupevaluationid = $groupevaluationid;
+        $criterion->id = $cm->id;
+        $draftideditor = file_get_submitted_draft_itemid('criterion');
+        $text = file_prepare_draft_area($draftideditor, $context->id, 'mod_groupevaluation', 'criterion',
+                                           $crtid, array('subdirs' => true), $criterion->text);
+        $criterion->text = array('text' => $text, 'format' => FORMAT_HTML, 'itemid' => $draftideditor);
     } else {
-        $question = new stdClass();
-        $question->sid = $questionnaire->survey->id;
-        $question->id = $cm->id;
-        $question->type_id = $qtype;
-        $question->type = '';
-        $draftideditor = file_get_submitted_draft_itemid('question');
-        $content = file_prepare_draft_area($draftideditor, $context->id, 'mod_questionnaire', 'question',
+        $criterion = new stdClass();
+        $criterion->groupevaluationid = $groupevaluationid;
+        $criterion->id = $cm->id;
+        $draftideditor = file_get_submitted_draft_itemid('criterion');
+        $text = file_prepare_draft_area($draftideditor, $context->id, 'mod_groupevaluation', 'criterion',
                                            null, array('subdirs' => true), '');
-        $question->content = array('text' => $content, 'format' => FORMAT_HTML, 'itemid' => $draftideditor);
+        $criterion->text = array('text' => $text, 'format' => FORMAT_HTML, 'itemid' => $draftideditor);
     }
-    $criterionsform = new questionnaire_edit_question_form('questions.php');
-    $criterionsform->set_data($question);
+    /*AQUI*/
+    $criterionsform = new groupevaluation_edit_criterion_form('criterions.php');
+    $criterionsform->set_data($criterion);
     if ($criterionsform->is_cancelled()) {
         // Switch to main screen.
         $action = 'main';
         $reload = true;
 
-    } else if ($qformdata = $criterionsform->get_data()) {
-        // Saving question data.
-        if (isset($qformdata->makecopy)) {
-            $qformdata->ctrid = 0;
+    } else if ($crtformdata = $criterionsform->get_data()) {
+        // Saving criterion data.
+        if (isset($crtformdata->makecopy)) {
+            $crtformdata->crtid = 0;
         }
 
-        $haschoices = $questionnaire->type_has_choices();
-        // THIS SECTION NEEDS TO BE MOVED OUT OF HERE - SHOULD CREATE QUESTION-SPECIFIC UPDATE FUNCTIONS.
-        if ($haschoices[$qformdata->type_id]) {
+        $haschoices = $groupevaluation->type_has_choices();
+        // THIS SECTION NEEDS TO BE MOVED OUT OF HERE - SHOULD CREATE criterion-SPECIFIC UPDATE FUNCTIONS.
+        if ($haschoices[$crtformdata->type_id]) {
             // Eliminate trailing blank lines.
-            $qformdata->allchoices = preg_replace("/(^[\r\n]*|[\r\n]+)[\s\t]*[\r\n]+/", "\n", $qformdata->allchoices);
+            $crtformdata->allchoices = preg_replace("/(^[\r\n]*|[\r\n]+)[\s\t]*[\r\n]+/", "\n", $crtformdata->allchoices);
             // Trim to eliminate potential trailing carriage return.
-            $qformdata->allchoices = trim($qformdata->allchoices);
-            if (empty($qformdata->allchoices)) {
-                if ($qformdata->type_id != QUESRATE) {
-                    error (get_string('enterpossibleanswers', 'questionnaire'));
-                } else {
-                    // Add dummy blank space character for empty value.
-                    $qformdata->allchoices = " ";
-                }
-            } else if ($qformdata->type_id == QUESRATE) {    // Rate.
-                $allchoices = $qformdata->allchoices;
-                $allchoices = explode("\n", $allchoices);
-                $ispossibleanswer = false;
-                $nbnameddegrees = 0;
-                $nbvalues = 0;
-                foreach ($allchoices as $choice) {
-                    if ($choice) {
-                        // Check for number from 1 to 3 digits, followed by the equal sign =.
-                        if (preg_match("/^[0-9]{1,3}=/", $choice)) {
-                            $nbnameddegrees++;
-                        } else {
-                            $nbvalues++;
-                            $ispossibleanswer = true;
-                        }
-                    }
-                }
-                // Add carriage return and dummy blank space character for empty value.
-                if (!$ispossibleanswer) {
-                    $qformdata->allchoices .= "\n ";
-                }
+            $crtformdata->allchoices = trim($crtformdata->allchoices);
+            if (empty($crtformdata->allchoices)) {
+                // Add dummy blank space character for empty value.
+                $crtformdata->allchoices = " ";
 
-                // Sanity checks for correct number of values in $qformdata->length.
-
-                // Sanity check for named degrees.
-                if ($nbnameddegrees && $nbnameddegrees != $qformdata->length) {
-                    $qformdata->length = $nbnameddegrees;
-                }
-                // Sanity check for "no duplicate choices"".
-                if ($qformdata->precise == 2 && ($qformdata->length > $nbvalues || !$qformdata->length)) {
-                    $qformdata->length = $nbvalues;
-                }
-            } else if ($qformdata->type_id == QUESCHECK) {
+            } else {
                 // Sanity checks for min and max checked boxes.
-                $allchoices = $qformdata->allchoices;
+                $allchoices = $crtformdata->allchoices;
                 $allchoices = explode("\n", $allchoices);
                 $nbvalues = count($allchoices);
 
-                if ($qformdata->length > $nbvalues) {
-                    $qformdata->length = $nbvalues;
+                if ($crtformdata->length > $nbvalues) {
+                    $crtformdata->length = $nbvalues;
                 }
-                if ($qformdata->precise > $nbvalues) {
-                    $qformdata->precise = $nbvalues;
+                if ($crtformdata->precise > $nbvalues) {
+                    $crtformdata->precise = $nbvalues;
                 }
-                $qformdata->precise = max($qformdata->length, $qformdata->precise);
+                $crtformdata->precise = max($crtformdata->length, $crtformdata->precise);
             }
         }
 
-        $dependency = array();
-        if (isset($qformdata->dependquestion) && $qformdata->dependquestion != 0) {
-            $dependency = explode(",", $qformdata->dependquestion);
-            $qformdata->dependquestion = $dependency[0];
-            $qformdata->dependchoice = $dependency[1];
-        }
+        if (!empty($crtformdata->crtid)) {
 
-        if (!empty($qformdata->ctrid)) {
+            // Update existing criterion.
+            // Handle any attachments in the text.
+            $crtformdata->itemid  = $crtformdata->text['itemid'];
+            $crtformdata->format  = $crtformdata->text['format'];
+            $crtformdata->text = $crtformdata->text['text'];
+            $crtformdata->text = file_save_draft_area_files($crtformdata->itemid, $context->id, 'mod_groupevaluation', 'criterion',
+                                                             $crtformdata->crtid, array('subdirs' => true), $crtformdata->text);
 
-            // Update existing question.
-            // Handle any attachments in the content.
-            $qformdata->itemid  = $qformdata->content['itemid'];
-            $qformdata->format  = $qformdata->content['format'];
-            $qformdata->content = $qformdata->content['text'];
-            $qformdata->content = file_save_draft_area_files($qformdata->itemid, $context->id, 'mod_questionnaire', 'question',
-                                                             $qformdata->ctrid, array('subdirs' => true), $qformdata->content);
-
-            $fields = array('name', 'type_id', 'length', 'precise', 'required', 'content', 'dependquestion', 'dependchoice');
-            $questionrecord = new stdClass();
-            $questionrecord->id = $qformdata->ctrid;
+            $fields = array('name', 'type_id', 'length', 'precise', 'required', 'text', 'dependcriterion', 'dependchoice');
+            $criterionrecord = new stdClass();
+            $criterionrecord->id = $crtformdata->crtid;
             foreach ($fields as $f) {
-                if (isset($qformdata->$f)) {
-                    $questionrecord->$f = trim($qformdata->$f);
+                if (isset($crtformdata->$f)) {
+                    $criterionrecord->$f = trim($crtformdata->$f);
                 }
             }
-            $result = $DB->update_record('questionnaire_question', $questionrecord);
-            if ($questionnairehasdependencies) {
-                questionnaire_check_page_breaks($questionnaire);
-            }
+            $result = $DB->update_record('groupevaluation_criterion', $criterionrecord);
+
         } else {
-            // Create new question:
+            // Create new criterion:
             // set the position to the end.
-            $sql = 'SELECT MAX(position) as maxpos FROM {questionnaire_question} '.
-                   'WHERE survey_id = '.$qformdata->sid.' AND deleted = \'n\'';
+            $sql = 'SELECT MAX(position) as maxpos FROM {groupevaluation_criterion} '.
+                   'WHERE survey_id = '.$crtformdata->sid.' AND deleted = \'n\'';
             if ($record = $DB->get_record_sql($sql)) {
-                $qformdata->position = $record->maxpos + 1;
+                $crtformdata->position = $record->maxpos + 1;
             } else {
-                $qformdata->position = 1;
+                $crtformdata->position = 1;
             }
 
-            // Need to update any image content after the question is created, so create then update the content.
-            $qformdata->survey_id = $qformdata->sid;
+            // Need to update any image text after the criterion is created, so create then update the text.
+            $crtformdata->survey_id = $crtformdata->sid;
             $fields = array('survey_id', 'name', 'type_id', 'length', 'precise', 'required', 'position',
-                            'dependquestion', 'dependchoice');
-            $questionrecord = new stdClass();
+                            'dependcriterion', 'dependchoice');
+            $criterionrecord = new stdClass();
             foreach ($fields as $f) {
-                if (isset($qformdata->$f)) {
-                    $questionrecord->$f = trim($qformdata->$f);
+                if (isset($crtformdata->$f)) {
+                    $criterionrecord->$f = trim($crtformdata->$f);
                 }
             }
-            $questionrecord->content = '';
+            $criterionrecord->text = '';
 
-            $qformdata->ctrid = $DB->insert_record('questionnaire_question', $questionrecord);
+            $crtformdata->crtid = $DB->insert_record('groupevaluation_criterion', $criterionrecord);
 
-            // Handle any attachments in the content.
-            $qformdata->itemid  = $qformdata->content['itemid'];
-            $qformdata->format  = $qformdata->content['format'];
-            $qformdata->content = $qformdata->content['text'];
-            $content            = file_save_draft_area_files($qformdata->itemid, $context->id, 'mod_questionnaire', 'question',
-                                                             $qformdata->ctrid, array('subdirs' => true), $qformdata->content);
-            $result = $DB->set_field('questionnaire_question', 'content', $content, array('id' => $qformdata->ctrid));
+            // Handle any attachments in the text.
+            $crtformdata->itemid  = $crtformdata->text['itemid'];
+            $crtformdata->format  = $crtformdata->text['format'];
+            $crtformdata->text = $crtformdata->text['text'];
+            $text            = file_save_draft_area_files($crtformdata->itemid, $context->id, 'mod_groupevaluation', 'criterion',
+                                                             $crtformdata->crtid, array('subdirs' => true), $crtformdata->text);
+            // TODO $result = $DB->set_field('groupevaluation_criterion', 'text', $text, array('id' => $crtformdata->crtid));
         }
 
-        // UPDATE or INSERT rows for each of the question choices for this question.
-        if ($haschoices[$qformdata->type_id]) {
+        // UPDATE or INSERT rows for each of the criterion choices for this criterion.
+        if ($haschoices[$crtformdata->type_id]) {
             $cidx = 0;
-            if (isset($question->choices) && !isset($qformdata->makecopy)) {
-                $oldcount = count($question->choices);
-                $echoice = reset($question->choices);
-                $ekey = key($question->choices);
+            if (isset($criterion->choices) && !isset($crtformdata->makecopy)) {
+                $oldcount = count($criterion->choices);
+                $echoice = reset($criterion->choices);
+                $ekey = key($criterion->choices);
             } else {
                 $oldcount = 0;
             }
 
-            $newchoices = explode("\n", $qformdata->allchoices);
+            $newchoices = explode("\n", $crtformdata->allchoices);
             $nidx = 0;
             $newcount = count($newchoices);
 
             while (($nidx < $newcount) && ($cidx < $oldcount)) {
-                if ($newchoices[$nidx] != $echoice->content) {
+                if ($newchoices[$nidx] != $echoice->text) {
                     $newchoices[$nidx] = trim ($newchoices[$nidx]);
-                    $result = $DB->set_field('questionnaire_quest_choice', 'content', $newchoices[$nidx], array('id' => $ekey));
+                    // TODO $result = $DB->set_field('groupevaluation_quest_choice', 'text', $newchoices[$nidx], array('id' => $ekey));
                     $r = preg_match_all("/^(\d{1,2})(=.*)$/", $newchoices[$nidx], $matches);
-                    // This choice has been attributed a "score value" OR this is a rate question type.
+                    // This choice has been attributed a "score value" OR this is a rate criterion type.
                     if ($r) {
                         $newscore = $matches[1][0];
-                        $result = $DB->set_field('questionnaire_quest_choice', 'value', $newscore, array('id' => $ekey));
+                        // TODO $result = $DB->set_field('groupevaluation_quest_choice', 'value', $newscore, array('id' => $ekey));
                     } else {     // No score value for this choice.
-                        $result = $DB->set_field('questionnaire_quest_choice', 'value', null, array('id' => $ekey));
+                        // TODO $result = $DB->set_field('groupevaluation_quest_choice', 'value', null, array('id' => $ekey));
                     }
                 }
                 $nidx++;
-                $echoice = next($question->choices);
-                $ekey = key($question->choices);
+                $echoice = next($criterion->choices);
+                $ekey = key($criterion->choices);
                 $cidx++;
             }
 
             while ($nidx < $newcount) {
                 // New choices...
                 $choicerecord = new stdClass();
-                $choicerecord->question_id = $qformdata->ctrid;
-                $choicerecord->content = trim($newchoices[$nidx]);
-                $r = preg_match_all("/^(\d{1,2})(=.*)$/", $choicerecord->content, $matches);
-                // This choice has been attributed a "score value" OR this is a rate question type.
+                $choicerecord->criterion_id = $crtformdata->crtid;
+                $choicerecord->text = trim($newchoices[$nidx]);
+                $r = preg_match_all("/^(\d{1,2})(=.*)$/", $choicerecord->text, $matches);
+                // This choice has been attributed a "score value" OR this is a rate criterion type.
                 if ($r) {
                     $choicerecord->value = $matches[1][0];
                 }
-                $result = $DB->insert_record('questionnaire_quest_choice', $choicerecord);
+                // TODO $result = $DB->insert_record('groupevaluation_quest_choice', $choicerecord);
                 $nidx++;
             }
 
             while ($cidx < $oldcount) {
-                $result = $DB->delete_records('questionnaire_quest_choice', array('id' => $ekey));
-                $echoice = next($question->choices);
-                $ekey = key($question->choices);
+                // TODO $result = $DB->delete_records('groupevaluation_quest_choice', array('id' => $ekey));
+                $echoice = next($criterion->choices);
+                $ekey = key($criterion->choices);
                 $cidx++;
             }
         }
-        // Make these field values 'sticky' for further new questions.
-        if (!isset($qformdata->required)) {
-            $qformdata->required = 'n';
+        // Make these field values 'sticky' for further new criterions.
+        if (!isset($crtformdata->required)) {
+            $crtformdata->required = 'n';
         }
-        // Need to reload questions.
-        $criterions = $DB->get_records('questionnaire_question', array('survey_id' => $sid, 'deleted' => 'n'), 'id');
-        $questionnairehasdependencies = questionnaire_has_dependencies($criterions);
-        if (questionnaire_has_dependencies($criterions)) {
-            questionnaire_check_page_breaks($questionnaire);
-        }
-        $SESSION->questionnaire->required = $qformdata->required;
-        $SESSION->questionnaire->type_id = $qformdata->type_id;
+        // Need to reload criterions.
+        $criterions = $DB->get_records('groupevaluation_criterions', array('groupevaluationid' => $groupevaluation->id), 'id');
+
         // Switch to main screen.
         $action = 'main';
         $reload = true;
     }
 
-    // Log question created event.
-    if (isset($qformdata)) {
-        $context = context_module::instance($questionnaire->cm->id);
-        $questiontype = $qtypenames[$qformdata->type_id];
+    // Log criterion created event.
+    if (isset($crtformdata)) {
+        $context = context_module::instance($groupevaluation->cm->id);
+        $criteriontype = $qtypenames[$crtformdata->type_id];
         $params = array(
                         'context' => $context,
-                        'courseid' => $questionnaire->course->id,
-                        'other' => array('questiontype' => $questiontype)
+                        'courseid' => $groupevaluation->course->id,
+                        'other' => array('criteriontype' => $criteriontype)
         );
-        $event = \mod_questionnaire\event\question_created::create($params);
+        $event = \mod_groupevaluation\event\criterion_created::create($params);
         $event->trigger();
     }
 
-    $criterionsform->set_data($question);
+    $criterionsform->set_data($criterion);
 }
 
 // Reload the form data if called for...
 if ($reload) {
     unset($criterionsform);
-    $questionnaire = new questionnaire($questionnaire->id, null, $course, $cm);
     if ($action == 'main') {
-        $criterionsform = new questionnaire_questions_form('questions.php', $moveq);
-        $sdata = clone($questionnaire->survey);
-        $sdata->sid = $questionnaire->survey->id;
+        $criterionsform = new groupevaluation_criterions_form('criterions.php', $moveq);
+        $sdata = clone($groupevaluation);
         $sdata->id = $cm->id;
-        if (!empty($questionnaire->questions)) {
+        if (!empty($criterions)) {
             $pos = 1;
-            foreach ($questionnaire->questions as $ctridx => $question) {
-                $sdata->{'pos_'.$ctridx} = $pos;
+            foreach ($criterions as $crtidx => $criterion) {
+                $sdata->{'pos_'.$crtidx} = $pos;
                 $pos++;
             }
         }
         $criterionsform->set_data($sdata);
-    } else if ($action == 'question') {
-        if ($ctrid != 0) {
-            $question = clone($questionnaire->questions[$ctrid]);
-            $question->ctrid = $question->id;
-            $question->sid = $questionnaire->survey->id;
-            $question->id = $cm->id;
-            $draftideditor = file_get_submitted_draft_itemid('question');
-            $content = file_prepare_draft_area($draftideditor, $context->id, 'mod_questionnaire', 'question',
-                                               $ctrid, array('subdirs' => true), $question->content);
-            $question->content = array('text' => $content, 'format' => FORMAT_HTML, 'itemid' => $draftideditor);
-        } else {
-            $question = new stdClass();
-            $question->sid = $questionnaire->survey->id;
-            $question->id = $cm->id;
-            $question->type_id = $qtype;
-            $question->type = $DB->get_field('questionnaire_question_type', 'type', array('id' => $qtype));
-            $draftideditor = file_get_submitted_draft_itemid('question');
-            $content = file_prepare_draft_area($draftideditor, $context->id, 'mod_questionnaire', 'question',
-                                               null, array('subdirs' => true), '');
-            $question->content = array('text' => $content, 'format' => FORMAT_HTML, 'itemid' => $draftideditor);
-        }
-        $criterionsform = new questionnaire_edit_question_form('questions.php');
-        $criterionsform->set_data($question);
+    } else if ($action == 'criterion') {
+
+        $criterion = new stdClass();
+        $criterion->id = $cm->id;
+        $draftideditor = file_get_submitted_draft_itemid('criterion');
+        $text = file_prepare_draft_area($draftideditor, $context->id, 'mod_groupevaluation', 'criterion',
+                                           null, array('subdirs' => true), '');
+        $criterion->text = array('text' => $text, 'format' => FORMAT_HTML, 'itemid' => $draftideditor);
+
+        $criterionsform = new groupevaluation_edit_criterion_form('criterions.php');
+        $criterionsform->set_data($criterion);
     }
 }
 
 // Print the page header.
-if ($action == 'question') {
-    if (isset($question->ctrid)) {
-        $streditquestion = get_string('editquestion', 'questionnaire', questionnaire_get_type($question->type_id));
+if ($action == 'criterion') {
+    if (isset($criterion->crtid)) {
+        $streditcriterion = get_string('editcriterion', 'groupevaluation');
     } else {
-        $streditquestion = get_string('addnewquestion', 'questionnaire', questionnaire_get_type($question->type_id));
+        $streditcriterion = get_string('addnewcriterion', 'groupevaluation');
     }
 } else {
-    $streditquestion = get_string('managequestions', 'questionnaire');
+    $streditcriterion = get_string('managecriterions', 'groupevaluation');
 }
 
-$PAGE->set_title($streditquestion);
+$PAGE->set_title($streditcriterion);
 $PAGE->set_heading(format_string($course->fullname));
-$PAGE->navbar->add($streditquestion);
+$PAGE->navbar->add($streditcriterion);
 echo $OUTPUT->header();
+echo $OUTPUT->heading(format_string($groupevaluation->name));
+
 require('tabs.php');
 
-if ($action == "confirmdelctruestion" || $action == "confirmdelctruestionparent") {
+if ($action == "confirmdelcriterion" || $action == "confirmdelcriterionparent") {
 
-    $ctrid = key($qformdata->removebutton);
-    $question = $questionnaire->questions[$ctrid];
-    $qtype = $question->type_id;
+    $crtid = key($crtformdata->removebutton);
+    $criterion = $groupevaluation->criterions[$crtid];
+    $qtype = $criterion->type_id;
 
-    // Count responses already saved for that question.
+    // Count responses already saved for that criterion.
     $countresps = 0;
     if ($qtype != QUESSECTIONTEXT) {
-        $responsetable = $DB->get_field('questionnaire_question_type', 'response_table', array('typeid' => $qtype));
+        $responsetable = $DB->get_field('groupevaluation_criterion_type', 'response_table', array('typeid' => $qtype));
         if (!empty($responsetable)) {
-            $countresps = $DB->count_records('questionnaire_'.$responsetable, array('question_id' => $ctrid));
+            $countresps = $DB->count_records('groupevaluation_'.$responsetable, array('criterion_id' => $crtid));
         }
     }
 
-    // Needed to print potential media in question text.
+    // Needed to print potential media in criterion text.
 
-    // If question text is "empty", i.e. 2 non-breaking spaces were inserted, do not display any question text.
+    // If criterion text is "empty", i.e. 2 non-breaking spaces were inserted, do not display any criterion text.
 
-    if ($question->content == '<p>  </p>') {
-        $question->content = '';
+    if ($criterion->text == '<p>  </p>') {
+        $criterion->text = '';
     }
 
     $qname = '';
-    if ($question->name) {
-        $qname = ' ('.$question->name.')';
+    if ($criterion->name) {
+        $qname = ' ('.$criterion->name.')';
     }
 
-    $num = get_string('position', 'questionnaire');
-    $pos = $question->position.$qname;
+    $num = get_string('position', 'groupevaluation');
+    $pos = $criterion->position.$qname;
 
-    $msg = '<div class="warning centerpara"><p>'.get_string('confirmdelctruestion', 'questionnaire', $pos).'</p>';
+    $msg = '<div class="warning centerpara"><p>'.get_string('confirmdelcriterion', 'groupevaluation', $pos).'</p>';
     if ($countresps !== 0) {
-        $msg .= '<p>'.get_string('confirmdelctruestionresps', 'questionnaire', $countresps).'</p>';
+        $msg .= '<p>'.get_string('confirmdelcriterionresps', 'groupevaluation', $countresps).'</p>';
     }
     $msg .= '</div>';
-    $msg .= '<div class = "qn-container">'.$num.' '.$pos.'<div class="qn-question">'.$question->content.'</div></div>';
-    $args = "id={$questionnaire->cm->id}";
-    $urlno = new moodle_url("/mod/questionnaire/questions.php?{$args}");
-    $args .= "&delctr={$ctrid}";
-    $urlyes = new moodle_url("/mod/questionnaire/questions.php?{$args}");
+    $msg .= '<div class = "qn-container">'.$num.' '.$pos.'<div class="qn-criterion">'.$criterion->text.'</div></div>';
+    $args = "id={$groupevaluation->cm->id}";
+    $urlno = new moodle_url("/mod/groupevaluation/criterions.php?{$args}");
+    $args .= "&delcrt={$crtid}";
+    $urlyes = new moodle_url("/mod/groupevaluation/criterions.php?{$args}");
     $buttonyes = new single_button($urlyes, get_string('yes'));
     $buttonno = new single_button($urlno, get_string('no'));
-    if ($action == "confirmdelctruestionparent") {
-        $strnum = get_string('position', 'questionnaire');
-        $ctrid = key($qformdata->removebutton);
-        $msg .= '<div class="warning">'.get_string('confirmdelchildren', 'questionnaire').'</div><br />';
+    if ($action == "confirmdelcriterionparent") {
+        $strnum = get_string('position', 'groupevaluation');
+        $crtid = key($crtformdata->removebutton);
+        $msg .= '<div class="warning">'.get_string('confirmdelchildren', 'groupevaluation').'</div><br />';
         foreach ($haschildren as $child) {
             $childname = '';
             if ($child['name']) {
                 $childname = ' ('.$child['name'].')';
             }
             $msg .= '<div class = "qn-container">'.$strnum.' '.$child['position'].$childname.'<span class="qdepend"><strong>'.
-                            get_string('dependquestion', 'questionnaire').'</strong>'.
+                            get_string('dependcriterion', 'groupevaluation').'</strong>'.
                             ' ('.$strnum.' '.$child['parentposition'].') '.
                             '&nbsp;:&nbsp;'.$child['parent'].'</span>'.
-                            '<div class="qn-question">'.
-                            $child['content'].
+                            '<div class="qn-criterion">'.
+                            $child['text'].
                             '</div></div>';
         }
     }

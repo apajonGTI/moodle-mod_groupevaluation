@@ -88,6 +88,41 @@ $capabilities = array(
         )
     ),
 
+    // Ability to view individual responses to the groupevaluation.
+    'mod/groupevaluation:viewsingleresponse' => array(
+
+        'captype' => 'read',
+        'contextlevel' => CONTEXT_MODULE,
+        'legacy' => array(
+            'teacher' => CAP_ALLOW,
+            'editingteacher' => CAP_ALLOW,
+            'manager' => CAP_ALLOW
+         )
+    ),
+
+    // Ability to download responses in a CSV file.
+    'mod/groupevaluation:downloadresponses' => array(
+
+        'captype' => 'read',
+        'contextlevel' => CONTEXT_MODULE,
+        'legacy' => array(
+            'teacher' => CAP_ALLOW,
+            'editingteacher' => CAP_ALLOW,
+            'manager' => CAP_ALLOW
+        )
+    ),
+
+    // Ability to delete someone's (or own) previous responses.
+    'mod/groupevaluation:deleteresponses' => array(
+
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_MODULE,
+        'legacy' => array(
+            'editingteacher' => CAP_ALLOW,
+            'manager' => CAP_ALLOW
+        )
+    ),
+
     'mod/groupevaluation:editsurvey' => array(
         'captype' => 'write',
         'contextlevel' => CONTEXT_MODULE,

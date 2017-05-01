@@ -24,6 +24,7 @@
  * @copyright  Jose Vilas
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+ require_once(dirname(__FILE__).'/lib.php');
 
 defined('MOODLE_INTERNAL') || die();
 
@@ -42,17 +43,76 @@ defined('MOODLE_INTERNAL') || die();
 
      $status = true;
 
-     // Delete all of the response data for a question.
-     $DB->delete_records('questionnaire_response_bool', array('question_id' => $qid));
-     $DB->delete_records('questionnaire_response_date', array('question_id' => $qid));
-     $DB->delete_records('questionnaire_resp_multiple', array('question_id' => $qid));
-     $DB->delete_records('questionnaire_response_other', array('question_id' => $qid));
-     $DB->delete_records('questionnaire_response_rank', array('question_id' => $qid));
-     $DB->delete_records('questionnaire_resp_single', array('question_id' => $qid));
-     $DB->delete_records('questionnaire_response_text', array('question_id' => $qid));
+     // Delete all of the response data for a criterion.
+     $DB->delete_records('criterionnaire_response_bool', array('criterion_id' => $qid));
+     $DB->delete_records('criterionnaire_response_date', array('criterion_id' => $qid));
+     $DB->delete_records('criterionnaire_resp_multiple', array('criterion_id' => $qid));
+     $DB->delete_records('criterionnaire_response_other', array('criterion_id' => $qid));
+     $DB->delete_records('criterionnaire_response_rank', array('criterion_id' => $qid));
+     $DB->delete_records('criterionnaire_resp_single', array('criterion_id' => $qid));
+     $DB->delete_records('criterionnaire_response_text', array('criterion_id' => $qid));
 
-     $status = $status && $DB->delete_records('questionnaire_response', array('id' => $qid));
-     $status = $status && $DB->delete_records('questionnaire_attempts', array('rid' => $qid));
+     $status = $status && $DB->delete_records('criterionnaire_response', array('id' => $qid));
+     $status = $status && $DB->delete_records('criterionnaire_attempts', array('rid' => $qid));
 
      return $status;
+ }
+
+ /**
+  * Function to move a criterion to a new position.
+  * Adapted from feedback plugin.
+  *
+  * @param int $movecrtid The id of the criterion to be moved.
+  * @param int $movetopos The position to move criterion to.
+  *
+  */
+
+ function move_criterion($criterions, $movecrtid, $movetopos) {
+     global $DB;
+
+     $movecriterion = $criterions[$movecrtid];
+
+     if (is_array($criterions)) {
+         $index = 1;
+         foreach ($criterions as $criterion) {
+             if ($index == $movetopos) {
+                 $index++;
+             }
+             if ($criterion->id == $movecriterion->id) {
+                 $movecriterion->position = $movetopos;
+                 $DB->update_record("groupevaluation_criterions", $movecriterion);
+                 continue;
+             }
+             $criterion->position = $index;
+             $DB->update_record("groupevaluation_criterions", $criterion);
+             $index++;
+         }
+         return true;
+     }
+     return false;
+ }
+
+ function view() {
+     global $CFG, $USER, $PAGE, $OUTPUT, $groupevaluation, $context, $course;
+
+     $PAGE->set_title(format_string($groupevaluation->name));
+     $PAGE->set_heading(format_string($course->fullname));
+
+     // Initialise the JavaScript.
+
+     echo $OUTPUT->header();
+
+     if (!has_capability('mod/groupevaluation:view', $context)) {
+         echo('<br/>');
+         groupevaluation_notify(get_string("noteligible", "groupevaluation", $groupevaluation->name));
+         echo('<div><a href="'.$CFG->wwwroot.'/course/view.php?id='.$groupevaluation->course->id.'" class="btn btn-default btn-lg active" role="button">'.
+             get_string("continue").'</a></div>');
+         exit;
+     }
+
+
+     echo $OUTPUT->heading(format_string($groupevaluation->name));
+
+    // Finish the page.
+    echo $OUTPUT->footer($groupevaluation->course);
  }

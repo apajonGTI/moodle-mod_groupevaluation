@@ -62,7 +62,7 @@
     <TABLE NAME="groupevaluation_criterions" COMMENT="Stores the criterions that can be used in surveys.">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-        <FIELD NAME="surveyid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="groupevaluationid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="description" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="Description of the criterion"/>
         <FIELD NAME="descriptionformat" TYPE="int" LENGTH="4" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" COMMENT="Format of the description field (MOODLE, HTML, MARKDOWN...)"/>
@@ -76,7 +76,7 @@
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-        <KEY NAME="surveyid" TYPE="foreign" FIELDS="surveyid" REFTABLE="groupevaluation_surveys" REFFIELDS="id"/>
+        <KEY NAME="groupevaluationid" TYPE="foreign" FIELDS="groupevaluationid" REFTABLE="groupevaluation" REFFIELDS="id"/>
       </KEYS>
     </TABLE>
 
