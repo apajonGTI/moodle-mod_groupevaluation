@@ -94,6 +94,17 @@ if (has_capability('mod/groupevaluation:readresponses', $context)) {
 //***************************************************
 if (has_capability('mod/groupevaluation:editsurvey', $context)) {
 
+  /*// TODO borrar
+  $tableaux = 'groupevaluation';
+  $selectaux = "id = $groupevaluation->id"; //is put into the where clause
+  $resultaux = $DB->get_records_select($tableaux,$selectaux);
+  foreach ($resultaux as $aux) {
+    $array = get_object_vars ($aux);
+    foreach ($array as $a) {
+      echo '<p>'.$a.'</p>';
+    }
+  }*/
+
   //$result = $DB->get_records_sql('SELECT COUNT(*) FROM groupevaluation_surveys WHERE groupevaluationid = ?', array($groupevaluation->id));
   $table = 'groupevaluation_surveys';
   $select = "groupevaluationid = $groupevaluation->id"; //is put into the where clause

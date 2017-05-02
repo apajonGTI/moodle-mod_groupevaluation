@@ -23,15 +23,15 @@
 require_once("../../config.php");
 require_once($CFG->dirroot.'/mod/groupevaluation/criterions_form.php');
 
-//($parname, $default, $type)
-$id     = required_param('id', PARAM_INT);               // Course module ID
-$action = optional_param('action', 'main', PARAM_ALPHA); // Screen.
-$crtid    = optional_param('crtid', 0, PARAM_INT);       // criterion id.
-$moveq  = optional_param('moveq', 0, PARAM_INT);         // criterion id to move.
-$delcrt   = optional_param('delcrt', 0, PARAM_INT);      // criterion id to delete
-$qtype  = optional_param('type_id', 0, PARAM_INT);       // criterion type.
-$currentgroupid = optional_param('group', 0, PARAM_INT); // Group id.
+/*optional_param($parname, $default, $type)*/
+$id             = required_param('id', PARAM_INT);                // Course module ID
+$action         = optional_param('action', 'main', PARAM_ALPHA);  // Screen.
+$crtid          = optional_param('crtid', 0, PARAM_INT);          // criterion id.
+$movecrt        = optional_param('movecrt', 0, PARAM_INT);        // criterion id to move.
+$delcrt         = optional_param('delcrt', 0, PARAM_INT);         // criterion id to delete
+$currentgroupid = optional_param('group', 0, PARAM_INT);          // Group id.
 
+// Check if the module instance exists
 if (! $cm = get_coursemodule_from_id('groupevaluation', $id)) {
     print_error('invalidcoursemodule');
 }
@@ -41,7 +41,7 @@ if (! $course = $DB->get_record("course", array("id" => $cm->course))) {
 }
 
 if (! $groupevaluation = $DB->get_record("groupevaluation", array("id" => $cm->instance))) {
-    print_error('invalidcoursemodule');
+    print_error('moduleinstancedoesnotexist');
 }
 
 require_course_login($course, true, $cm);
@@ -65,6 +65,8 @@ if (!isset($SESSION->groupevaluation)) {
 }
 $SESSION->groupevaluation->current_tab = 'criterions';
 $reload = false;
+
+
 // Process form data.
 
 $groupevaluationid = $groupevaluation->id;
@@ -116,7 +118,7 @@ if ($delcrt) {
 }
 
 if ($action == 'main') {
-    $criterionsform = new groupevaluation_criterions_form('criterions.php', $moveq);
+    $criterionsform = new groupevaluation_criterions_form('criterions.php', $movecrt);
     $sdata = clone($groupevaluation);
     $sdata->id = $cm->id;
 
@@ -178,7 +180,7 @@ if ($action == 'main') {
         } else if (isset($crtformdata->movebutton)) {
             // Nothing I do will seem to reload the form with new data, except for moving away from the page, so...
             redirect($CFG->wwwroot.'/mod/groupevaluation/criterions.php?id='.$cm->id.
-                     '&moveq='.key($crtformdata->movebutton));
+                     '&movecrt='.key($crtformdata->movebutton));
             $reload = true;
 
         } else if (isset($crtformdata->moveherebutton)) {
@@ -187,8 +189,8 @@ if ($action == 'main') {
 
             // No need to move criterion if new position = old position!
             $crtpos = key($crtformdata->moveherebutton);
-            if ($crtformdata->moveq != $crtpos) {
-                move_criterion($criterions, $crtformdata->moveq, $crtpos);
+            if ($crtformdata->movecrt != $crtpos) {
+                move_criterion($criterions, $crtformdata->movecrt, $crtpos); // TODO Revisar funcion en locallib.php
             }
             // Nothing I do will seem to reload the form with new data, except for moving away from the page, so...
             redirect($CFG->wwwroot.'/mod/groupevaluation/criterions.php?id='.$cm->id);
@@ -230,32 +232,27 @@ if ($action == 'main') {
             $crtformdata->crtid = 0;
         }
 
-        $haschoices = $groupevaluation->type_has_choices();
         // THIS SECTION NEEDS TO BE MOVED OUT OF HERE - SHOULD CREATE criterion-SPECIFIC UPDATE FUNCTIONS.
-        if ($haschoices[$crtformdata->type_id]) {
-            // Eliminate trailing blank lines.
-            $crtformdata->allchoices = preg_replace("/(^[\r\n]*|[\r\n]+)[\s\t]*[\r\n]+/", "\n", $crtformdata->allchoices);
-            // Trim to eliminate potential trailing carriage return.
-            $crtformdata->allchoices = trim($crtformdata->allchoices);
-            if (empty($crtformdata->allchoices)) {
-                // Add dummy blank space character for empty value.
-                $crtformdata->allchoices = " ";
+        // Eliminate trailing blank lines.
+        $crtformdata->allchoices = preg_replace("/(^[\r\n]*|[\r\n]+)[\s\t]*[\r\n]+/", "\n", $crtformdata->allchoices);
+        // Trim to eliminate potential trailing carriage return.
+        $crtformdata->allchoices = trim($crtformdata->allchoices);
+        if (empty($crtformdata->allchoices)) {
+            // Add dummy blank space character for empty value.
+            $crtformdata->allchoices = " ";
 
-            } else {
-                // Sanity checks for min and max checked boxes.
-                $allchoices = $crtformdata->allchoices;
-                $allchoices = explode("\n", $allchoices);
-                $nbvalues = count($allchoices);
+        } else {
+            // Sanity checks for min and max checked boxes.
+            $allchoices = $crtformdata->allchoices;
+            $allchoices = explode("\n", $allchoices);
+            $nbvalues = count($allchoices);
 
-                if ($crtformdata->length > $nbvalues) {
-                    $crtformdata->length = $nbvalues;
-                }
-                if ($crtformdata->precise > $nbvalues) {
-                    $crtformdata->precise = $nbvalues;
-                }
-                $crtformdata->precise = max($crtformdata->length, $crtformdata->precise);
+            if ($crtformdata->length > $nbvalues) {
+                $crtformdata->length = $nbvalues;
             }
         }
+
+        $crtformdata->timecreated  = time();
 
         if (!empty($crtformdata->crtid)) {
 
@@ -267,7 +264,9 @@ if ($action == 'main') {
             $crtformdata->text = file_save_draft_area_files($crtformdata->itemid, $context->id, 'mod_groupevaluation', 'criterion',
                                                              $crtformdata->crtid, array('subdirs' => true), $crtformdata->text);
 
-            $fields = array('name', 'type_id', 'length', 'precise', 'required', 'text', 'dependcriterion', 'dependchoice');
+            /*$fields = array('name', 'text', 'textformat', 'weight', 'default', 'timecreated', 'timemodified',
+                            'createdby', 'modifiedby', 'special');*/
+            $fields = array('name', 'text', 'textformat', 'timecreated','special');
             $criterionrecord = new stdClass();
             $criterionrecord->id = $crtformdata->crtid;
             foreach ($fields as $f) {
@@ -275,13 +274,13 @@ if ($action == 'main') {
                     $criterionrecord->$f = trim($crtformdata->$f);
                 }
             }
-            $result = $DB->update_record('groupevaluation_criterion', $criterionrecord);
+            $result = $DB->update_record('groupevaluation_criterions', $criterionrecord);
 
         } else {
             // Create new criterion:
             // set the position to the end.
-            $sql = 'SELECT MAX(position) as maxpos FROM {groupevaluation_criterion} '.
-                   'WHERE survey_id = '.$crtformdata->sid.' AND deleted = \'n\'';
+            $sql = 'SELECT MAX(id) as maxpos FROM {groupevaluation_criterions} '. // TODO Cambiar consulta -> esta no es
+                   'WHERE groupevaluationid = '.$groupevaluation->id;
             if ($record = $DB->get_record_sql($sql)) {
                 $crtformdata->position = $record->maxpos + 1;
             } else {
@@ -289,18 +288,17 @@ if ($action == 'main') {
             }
 
             // Need to update any image text after the criterion is created, so create then update the text.
-            $crtformdata->survey_id = $crtformdata->sid;
-            $fields = array('survey_id', 'name', 'type_id', 'length', 'precise', 'required', 'position',
-                            'dependcriterion', 'dependchoice');
+            /*$fields = array('groupevaluationid', 'name', 'text', 'textformat', 'weight', 'default', 'timecreated', 'timemodified',
+                            'createdby', 'modifiedby', 'special');*/
+            $fields = array('groupevaluationid', 'name', 'text', 'textformat', 'timecreated','special');
             $criterionrecord = new stdClass();
             foreach ($fields as $f) {
                 if (isset($crtformdata->$f)) {
                     $criterionrecord->$f = trim($crtformdata->$f);
                 }
             }
-            $criterionrecord->text = '';
 
-            $crtformdata->crtid = $DB->insert_record('groupevaluation_criterion', $criterionrecord);
+            $crtformdata->crtid = $DB->insert_record('groupevaluation_criterions', $criterionrecord);
 
             // Handle any attachments in the text.
             $crtformdata->itemid  = $crtformdata->text['itemid'];
@@ -308,64 +306,63 @@ if ($action == 'main') {
             $crtformdata->text = $crtformdata->text['text'];
             $text            = file_save_draft_area_files($crtformdata->itemid, $context->id, 'mod_groupevaluation', 'criterion',
                                                              $crtformdata->crtid, array('subdirs' => true), $crtformdata->text);
-            // TODO $result = $DB->set_field('groupevaluation_criterion', 'text', $text, array('id' => $crtformdata->crtid));
+            // TODO $result = $DB->set_field('groupevaluation_criterions', 'text', $text, array('id' => $crtformdata->crtid));
         }
 
         // UPDATE or INSERT rows for each of the criterion choices for this criterion.
-        if ($haschoices[$crtformdata->type_id]) {
-            $cidx = 0;
-            if (isset($criterion->choices) && !isset($crtformdata->makecopy)) {
-                $oldcount = count($criterion->choices);
-                $echoice = reset($criterion->choices);
-                $ekey = key($criterion->choices);
-            } else {
-                $oldcount = 0;
-            }
+        $cidx = 0;
+        if (isset($criterion->choices) && !isset($crtformdata->makecopy)) {
+            $oldcount = count($criterion->choices);
+            $echoice = reset($criterion->choices);
+            $ekey = key($criterion->choices);
+        } else {
+            $oldcount = 0;
+        }
 
-            $newchoices = explode("\n", $crtformdata->allchoices);
-            $nidx = 0;
-            $newcount = count($newchoices);
+        $newchoices = explode("\n", $crtformdata->allchoices);
+        $nidx = 0;
+        $newcount = count($newchoices);
 
-            while (($nidx < $newcount) && ($cidx < $oldcount)) {
-                if ($newchoices[$nidx] != $echoice->text) {
-                    $newchoices[$nidx] = trim ($newchoices[$nidx]);
-                    // TODO $result = $DB->set_field('groupevaluation_quest_choice', 'text', $newchoices[$nidx], array('id' => $ekey));
-                    $r = preg_match_all("/^(\d{1,2})(=.*)$/", $newchoices[$nidx], $matches);
-                    // This choice has been attributed a "score value" OR this is a rate criterion type.
-                    if ($r) {
-                        $newscore = $matches[1][0];
-                        // TODO $result = $DB->set_field('groupevaluation_quest_choice', 'value', $newscore, array('id' => $ekey));
-                    } else {     // No score value for this choice.
-                        // TODO $result = $DB->set_field('groupevaluation_quest_choice', 'value', null, array('id' => $ekey));
-                    }
-                }
-                $nidx++;
-                $echoice = next($criterion->choices);
-                $ekey = key($criterion->choices);
-                $cidx++;
-            }
-
-            while ($nidx < $newcount) {
-                // New choices...
-                $choicerecord = new stdClass();
-                $choicerecord->criterion_id = $crtformdata->crtid;
-                $choicerecord->text = trim($newchoices[$nidx]);
-                $r = preg_match_all("/^(\d{1,2})(=.*)$/", $choicerecord->text, $matches);
+        while (($nidx < $newcount) && ($cidx < $oldcount)) {
+            if ($newchoices[$nidx] != $echoice->text) {
+                $newchoices[$nidx] = trim ($newchoices[$nidx]);
+                // TODO $result = $DB->set_field('groupevaluation_quest_choice', 'text', $newchoices[$nidx], array('id' => $ekey));
+                $r = preg_match_all("/^(\d{1,2})(=.*)$/", $newchoices[$nidx], $matches);
                 // This choice has been attributed a "score value" OR this is a rate criterion type.
                 if ($r) {
-                    $choicerecord->value = $matches[1][0];
+                    $newscore = $matches[1][0];
+                    // TODO $result = $DB->set_field('groupevaluation_quest_choice', 'value', $newscore, array('id' => $ekey));
+                } else {     // No score value for this choice.
+                    // TODO $result = $DB->set_field('groupevaluation_quest_choice', 'value', null, array('id' => $ekey));
                 }
-                // TODO $result = $DB->insert_record('groupevaluation_quest_choice', $choicerecord);
-                $nidx++;
             }
-
-            while ($cidx < $oldcount) {
-                // TODO $result = $DB->delete_records('groupevaluation_quest_choice', array('id' => $ekey));
-                $echoice = next($criterion->choices);
-                $ekey = key($criterion->choices);
-                $cidx++;
-            }
+            $nidx++;
+            $echoice = next($criterion->choices);
+            $ekey = key($criterion->choices);
+            $cidx++;
         }
+
+        while ($nidx < $newcount) {
+            // New choices...
+            $choicerecord = new stdClass();
+            $choicerecord->criterion_id = $crtformdata->crtid;
+            $choicerecord->text = trim($newchoices[$nidx]);
+            $r = preg_match_all("/^(\d{1,2})(=.*)$/", $choicerecord->text, $matches);
+            // This choice has been attributed a "score value" OR this is a rate criterion type.
+            if ($r) {
+                $choicerecord->value = $matches[1][0];
+            }
+            // TODO $result = $DB->insert_record('groupevaluation_quest_choice', $choicerecord);
+            $nidx++;
+        }
+
+        while ($cidx < $oldcount) {
+            // TODO $result = $DB->delete_records('groupevaluation_quest_choice', array('id' => $ekey));
+            $echoice = next($criterion->choices);
+            $ekey = key($criterion->choices);
+            $cidx++;
+        }
+
         // Make these field values 'sticky' for further new criterions.
         if (!isset($crtformdata->required)) {
             $crtformdata->required = 'n';
@@ -398,7 +395,7 @@ if ($action == 'main') {
 if ($reload) {
     unset($criterionsform);
     if ($action == 'main') {
-        $criterionsform = new groupevaluation_criterions_form('criterions.php', $moveq);
+        $criterionsform = new groupevaluation_criterions_form('criterions.php', $movecrt);
         $sdata = clone($groupevaluation);
         $sdata->id = $cm->id;
         if (!empty($criterions)) {

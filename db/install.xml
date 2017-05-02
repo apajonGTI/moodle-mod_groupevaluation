@@ -15,7 +15,7 @@
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="timeopen" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Time when the groupevaluation was started."/>
         <FIELD NAME="timeclose" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Time when the groupevaluation was finished. 0 if the groupevaluation has not been submitted yet."/>
-        <FIELD NAME="useexamples" TYPE="int" LENGTH="2" NOTNULL="false" DEFAULT="0" SEQUENCE="false" COMMENT="Comment"/>
+        <FIELD NAME="useexamples" TYPE="int" LENGTH="4" NOTNULL="false" DEFAULT="0" SEQUENCE="false" COMMENT="Comment"/>
         <FIELD NAME="grade" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="100" SEQUENCE="false" COMMENT="The maximum grade. Can be negative to indicate the use of a scale."/>
         <FIELD NAME="hardlowerdeviation" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="100" SEQUENCE="false" COMMENT="Above this limit, it is considerated a hard deviation."/>
         <FIELD NAME="hardupperdeviation" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="100" SEQUENCE="false" COMMENT="Below this limit, it is considerated a hard deviation."/>
@@ -39,11 +39,11 @@
         <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references user.id."/>
         <FIELD NAME="groupid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references group.id."/>
         <FIELD NAME="groupevaluationid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Foreign key references groupevaluation.id."/>
-        <FIELD NAME="submitted" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Has the groupevaluation been submitted?"/>
+        <FIELD NAME="submitted" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Has the groupevaluation been submitted?"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="false"/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="status" TYPE="char" LENGTH="28" NOTNULL="false" SEQUENCE="false"/>
-        <FIELD NAME="mailed" TYPE="char" LENGTH="1" NOTNULL="true" DEFAULT="n" SEQUENCE="false" COMMENT="Has the user been mailed?"/>
+        <FIELD NAME="mailed" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Has the user been mailed?"/>
 
       </FIELDS>
       <KEYS>
@@ -64,15 +64,15 @@
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="groupevaluationid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
-        <FIELD NAME="description" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="Description of the criterion"/>
-        <FIELD NAME="descriptionformat" TYPE="int" LENGTH="4" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" COMMENT="Format of the description field (MOODLE, HTML, MARKDOWN...)"/>
+        <FIELD NAME="text" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="Description of the criterion"/>
+        <FIELD NAME="textformat" TYPE="int" LENGTH="4" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" COMMENT="Format of the description field (MOODLE, HTML, MARKDOWN...)"/>
         <FIELD NAME="weight" TYPE="number" LENGTH="10" NOTNULL="false" SEQUENCE="false" DECIMALS="5" COMMENT="The computed grade 0..100 for this assessment. If NULL then it has not been computed yet."/>
-        <FIELD NAME="default" TYPE="char" LENGTH="1" NOTNULL="true" DEFAULT="n" SEQUENCE="false"/>
+        <FIELD NAME="default" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="false"/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="createdby" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="modifiedby" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
-        <FIELD NAME="special" TYPE="char" LENGTH="1" NOTNULL="true" DEFAULT="n" SEQUENCE="false"/>
+        <FIELD NAME="special" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Special criterion in the evaluation"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
