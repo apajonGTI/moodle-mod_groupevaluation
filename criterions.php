@@ -22,6 +22,7 @@
 
 require_once("../../config.php");
 require_once($CFG->dirroot.'/mod/groupevaluation/criterions_form.php');
+require_once($CFG->dirroot.'/mod/groupevaluation/locallib.php');
 
 /*optional_param($parname, $default, $type)*/
 $id             = required_param('id', PARAM_INT);                // Course module ID
@@ -70,8 +71,10 @@ $reload = false;
 // Process form data.
 
 $groupevaluationid = $groupevaluation->id;
-$criterions = $DB->get_records('groupevaluation_criterions', array('groupevaluationid' => $groupevaluationid), 'id');
+$select = 'groupevaluationid = '.$groupevaluationid;
+$criterions = $DB->get_records_select('groupevaluation_criterions', $select, null, 'position ASC');
 
+// ******************** DELETE CRITERION ****************************************
 // Delete criterion button has been pressed in criterions_form AND deletion has been confirmed on the confirmation page.
 if ($delcrt) {
     $crtid = $delcrt;
@@ -117,6 +120,8 @@ if ($delcrt) {
     $reload = true;
 }
 
+// ******************** MAIN VIEW ****************************************
+
 if ($action == 'main') {
     $criterionsform = new groupevaluation_criterions_form('criterions.php', $movecrt);
     $sdata = clone($groupevaluation);
@@ -130,6 +135,7 @@ if ($action == 'main') {
         }
     }
     $criterionsform->set_data($sdata);
+
     if ($criterionsform->is_cancelled()) {
         // Switch to main screen.
         $action = 'main';
@@ -175,7 +181,15 @@ if ($action == 'main') {
             $action = 'criterion';
             $crtid = 0;
             $reload = true;
+            $numanswers = $crtformdata->numanswers;
 
+        } else if (isset($crtformdata->addanswer)) {
+
+            // Switch to edit criterion screen.
+            /*$action = 'criterion';
+            $crtid = 0;
+            $reload = true;*/
+            print_error('moduleinstancedoesnotexist');
 
         } else if (isset($crtformdata->movebutton)) {
             // Nothing I do will seem to reload the form with new data, except for moving away from the page, so...
@@ -198,27 +212,28 @@ if ($action == 'main') {
         }
     }
 
-
+// ******************** ACTION CRITERION ****************************************
 } else if ($action == 'criterion') {
     if ($crtid != 0) {
         $criterion = clone($criterions[$crtid]);
         $criterion->crtid = $criterion->id;
         $criterion->groupevaluationid = $groupevaluationid;
-        $criterion->id = $cm->id;
+        $criterion->cmid = $cm->id;
         $draftideditor = file_get_submitted_draft_itemid('criterion');
         $text = file_prepare_draft_area($draftideditor, $context->id, 'mod_groupevaluation', 'criterion',
-                                           $crtid, array('subdirs' => true), $criterion->text);
+                                           $criterion->crtid, array('subdirs' => true), $criterion->text);
         $criterion->text = array('text' => $text, 'format' => FORMAT_HTML, 'itemid' => $draftideditor);
     } else {
         $criterion = new stdClass();
         $criterion->groupevaluationid = $groupevaluationid;
-        $criterion->id = $cm->id;
+        $criterion->cmid = $cm->id;
         $draftideditor = file_get_submitted_draft_itemid('criterion');
         $text = file_prepare_draft_area($draftideditor, $context->id, 'mod_groupevaluation', 'criterion',
                                            null, array('subdirs' => true), '');
         $criterion->text = array('text' => $text, 'format' => FORMAT_HTML, 'itemid' => $draftideditor);
     }
     /*AQUI*/
+    $criterion->numanswers = $numanswers;
     $criterionsform = new groupevaluation_edit_criterion_form('criterions.php');
     $criterionsform->set_data($criterion);
     if ($criterionsform->is_cancelled()) {
@@ -234,22 +249,18 @@ if ($action == 'main') {
 
         // THIS SECTION NEEDS TO BE MOVED OUT OF HERE - SHOULD CREATE criterion-SPECIFIC UPDATE FUNCTIONS.
         // Eliminate trailing blank lines.
-        $crtformdata->allchoices = preg_replace("/(^[\r\n]*|[\r\n]+)[\s\t]*[\r\n]+/", "\n", $crtformdata->allchoices);
+        $crtformdata->tags = preg_replace("/(^[\r\n]*|[\r\n]+)[\s\t]*[\r\n]+/", "\n", $crtformdata->tags);
         // Trim to eliminate potential trailing carriage return.
-        $crtformdata->allchoices = trim($crtformdata->allchoices);
-        if (empty($crtformdata->allchoices)) {
+        $crtformdata->tags = trim($crtformdata->tags);
+        if (empty($crtformdata->tags)) {
             // Add dummy blank space character for empty value.
-            $crtformdata->allchoices = " ";
+            $crtformdata->tags = " ";
 
         } else {
             // Sanity checks for min and max checked boxes.
-            $allchoices = $crtformdata->allchoices;
-            $allchoices = explode("\n", $allchoices);
-            $nbvalues = count($allchoices);
-
-            if ($crtformdata->length > $nbvalues) {
-                $crtformdata->length = $nbvalues;
-            }
+            $tags = $crtformdata->tags;
+            $tags = explode("\n", $tags);
+            $nbvalues = count($tags);
         }
 
         $crtformdata->timecreated  = time();
@@ -259,14 +270,16 @@ if ($action == 'main') {
             // Update existing criterion.
             // Handle any attachments in the text.
             $crtformdata->itemid  = $crtformdata->text['itemid'];
-            $crtformdata->format  = $crtformdata->text['format'];
+            $crtformdata->textformat  = $crtformdata->text['format'];
             $crtformdata->text = $crtformdata->text['text'];
             $crtformdata->text = file_save_draft_area_files($crtformdata->itemid, $context->id, 'mod_groupevaluation', 'criterion',
                                                              $crtformdata->crtid, array('subdirs' => true), $crtformdata->text);
 
             /*$fields = array('name', 'text', 'textformat', 'weight', 'default', 'timecreated', 'timemodified',
-                            'createdby', 'modifiedby', 'special');*/
-            $fields = array('name', 'text', 'textformat', 'timecreated','special');
+                            'createdby', 'modifiedby', 'special', 'position');*/
+
+            // Update criterions table
+            $fields = array('name', 'text', 'textformat', 'weight', 'timecreated','special', 'position', 'tags');
             $criterionrecord = new stdClass();
             $criterionrecord->id = $crtformdata->crtid;
             foreach ($fields as $f) {
@@ -276,10 +289,25 @@ if ($action == 'main') {
             }
             $result = $DB->update_record('groupevaluation_criterions', $criterionrecord);
 
+//*
+
+//*
+            // Update tags table
+            $tagrecord = new stdClass();
+            $tagfields = array('name', 'text', 'textformat', 'weight', 'timecreated','special', 'position', 'tags');
+            foreach ($tags as $tag) {
+              foreach ($fields as $f) {
+                  if (isset($crtformdata->$f)) {
+                      $criterionrecord->$f = trim($crtformdata->$f);
+                  }
+              }
+            }
+            $resulttags = $DB->update_record('groupevaluation_tags', $criterionrecord);
+
         } else {
             // Create new criterion:
             // set the position to the end.
-            $sql = 'SELECT MAX(id) as maxpos FROM {groupevaluation_criterions} '. // TODO Cambiar consulta -> esta no es
+            $sql = 'SELECT MAX(position) as maxpos FROM {groupevaluation_criterions} '. // TODO Cambiar consulta -> esta no es
                    'WHERE groupevaluationid = '.$groupevaluation->id;
             if ($record = $DB->get_record_sql($sql)) {
                 $crtformdata->position = $record->maxpos + 1;
@@ -287,10 +315,17 @@ if ($action == 'main') {
                 $crtformdata->position = 1;
             }
 
+            // Handle any attachments in the text.
+            $crtformdata->itemid  = $crtformdata->text['itemid'];
+            $crtformdata->textformat  = $crtformdata->text['format'];
+            $crtformdata->text = $crtformdata->text['text'];
+            $text            = file_save_draft_area_files($crtformdata->itemid, $context->id, 'mod_groupevaluation', 'criterion',
+                                                             $crtformdata->crtid, array('subdirs' => true), $crtformdata->text);
+
             // Need to update any image text after the criterion is created, so create then update the text.
             /*$fields = array('groupevaluationid', 'name', 'text', 'textformat', 'weight', 'default', 'timecreated', 'timemodified',
-                            'createdby', 'modifiedby', 'special');*/
-            $fields = array('groupevaluationid', 'name', 'text', 'textformat', 'timecreated','special');
+                            'createdby', 'modifiedby', 'special', 'position');*/
+            $fields = array('groupevaluationid', 'name', 'text', 'textformat', 'weight', 'timecreated','special', 'position','tags');
             $criterionrecord = new stdClass();
             foreach ($fields as $f) {
                 if (isset($crtformdata->$f)) {
@@ -300,12 +335,7 @@ if ($action == 'main') {
 
             $crtformdata->crtid = $DB->insert_record('groupevaluation_criterions', $criterionrecord);
 
-            // Handle any attachments in the text.
-            $crtformdata->itemid  = $crtformdata->text['itemid'];
-            $crtformdata->format  = $crtformdata->text['format'];
-            $crtformdata->text = $crtformdata->text['text'];
-            $text            = file_save_draft_area_files($crtformdata->itemid, $context->id, 'mod_groupevaluation', 'criterion',
-                                                             $crtformdata->crtid, array('subdirs' => true), $crtformdata->text);
+
             // TODO $result = $DB->set_field('groupevaluation_criterions', 'text', $text, array('id' => $crtformdata->crtid));
         }
 
@@ -319,7 +349,7 @@ if ($action == 'main') {
             $oldcount = 0;
         }
 
-        $newchoices = explode("\n", $crtformdata->allchoices);
+        $newchoices = explode("\n", $crtformdata->tags);
         $nidx = 0;
         $newcount = count($newchoices);
 
@@ -375,18 +405,17 @@ if ($action == 'main') {
         $reload = true;
     }
 
-    // Log criterion created event.
-    if (isset($crtformdata)) {
-        $context = context_module::instance($groupevaluation->cm->id);
-        $criteriontype = $qtypenames[$crtformdata->type_id];
+    // Log criterion created event. // TODO En questionnaire/classes/evet/"question_created"
+    /*if (isset($crtformdata)) {
+        $context = context_module::instance($cm->id);
         $params = array(
                         'context' => $context,
-                        'courseid' => $groupevaluation->course->id,
-                        'other' => array('criteriontype' => $criteriontype)
+                        'courseid' => $course->id//,
+                        //'other' => array('criterionname' => $criterions[$crtid])
         );
         $event = \mod_groupevaluation\event\criterion_created::create($params);
         $event->trigger();
-    }
+    }*/
 
     $criterionsform->set_data($criterion);
 }
@@ -409,12 +438,12 @@ if ($reload) {
     } else if ($action == 'criterion') {
 
         $criterion = new stdClass();
-        $criterion->id = $cm->id;
+        $criterion->cmid = $cm->id;
         $draftideditor = file_get_submitted_draft_itemid('criterion');
         $text = file_prepare_draft_area($draftideditor, $context->id, 'mod_groupevaluation', 'criterion',
                                            null, array('subdirs' => true), '');
         $criterion->text = array('text' => $text, 'format' => FORMAT_HTML, 'itemid' => $draftideditor);
-
+        $criterion->numanswers = $numanswers;
         $criterionsform = new groupevaluation_edit_criterion_form('criterions.php');
         $criterionsform->set_data($criterion);
     }
@@ -423,18 +452,21 @@ if ($reload) {
 // Print the page header.
 if ($action == 'criterion') {
     if (isset($criterion->crtid)) {
-        $streditcriterion = get_string('editcriterion', 'groupevaluation');
+        $strtitle = get_string('editcriterion', 'groupevaluation');
     } else {
-        $streditcriterion = get_string('addnewcriterion', 'groupevaluation');
+        $strtitle = get_string('addnewcriterion', 'groupevaluation');
     }
 } else {
-    $streditcriterion = get_string('managecriterions', 'groupevaluation');
+    $strtitle = get_string('editsurvey', 'groupevaluation');
 }
 
-$PAGE->set_title($streditcriterion);
+
+$PAGE->set_title($strtitle);
 $PAGE->set_heading(format_string($course->fullname));
-$PAGE->navbar->add($streditcriterion);
+$PAGE->navbar->add($strtitle);
+
 echo $OUTPUT->header();
+
 echo $OUTPUT->heading(format_string($groupevaluation->name));
 
 require('tabs.php');
@@ -505,4 +537,7 @@ if ($action == "confirmdelcriterion" || $action == "confirmdelcriterionparent") 
 } else {
     $criterionsform->display();
 }
+echo '<script type="text/javascript" src="'.$CFG->wwwroot.'/mod/groupevaluation/javascript/criterions_form.js" type="text/javascript"></script>';
+//TODO Borrar -> no hace falta javascript
+
 echo $OUTPUT->footer();

@@ -21,6 +21,7 @@
  */
 
 require_once($CFG->dirroot.'/course/moodleform_mod.php');
+
 //require_once($CFG->dirroot.'/mod/groupevaluation/criteriontypes/criteriontypes.class.php');
 
 class groupevaluation_criterions_form extends moodleform {
@@ -31,15 +32,14 @@ class groupevaluation_criterions_form extends moodleform {
     }
 
     public function definition() {
-        global $CFG, $groupevaluation, $SESSION, $OUTPUT;
+        global $CFG, $groupevaluation, $SESSION, $OUTPUT, $cm, $context;
         global $DB;
 
         $mform    =& $this->_form;
+        //TODO Actualizar la variable $SESSION en criterions.php con los datos de este formulario
 
-        // ADD NEW CRITERION //
-
-        $mform->addElement('header', 'criterionhdr', get_string('addcriterions', 'groupevaluation'));
-        $mform->addHelpButton('criterionhdr', 'addcriterions', 'groupevaluation');
+        //$this->add_action_buttons();
+        //$mform->addElement('submit', 'addsurvey', get_string('addsurvey', 'groupevaluation'));
 
         //TODO Borrar
         $stredit = get_string('edit', 'groupevaluation');
@@ -52,22 +52,46 @@ class groupevaluation_criterions_form extends moodleform {
 
         $table = 'groupevaluation_criterions';
         $select = "groupevaluationid = $groupevaluation->id"; //is put into the where clause
-        $criterions = $DB->get_records_select($table,$select);
+        $criterions = $DB->get_records_select($table, $select, null, 'position ASC');
 
         if ($this->movecrt) {
-            $movecrtposition = $criterions[$this->movecrt]->position;//TODO Campo position en la base de datos
+            $movecrtposition = $criterions[$this->movecrt]->position; //TODO Campo position en la base de datos
         }
 
         $pos = 0;
 
-        $mform->addElement('submit', 'addcrtbutton', get_string('addnewcriterion', 'groupevaluation'));
+        // ADD NEW CRITERION //
+        $mform->addElement('header', 'criterionhdr', get_string('addcriterions', 'groupevaluation'));
+        $mform->addHelpButton('criterionhdr', 'addcriterions', 'groupevaluation');
+
+        $addcrtgroup = array();
+
+        //$number[0] = '----- Num of answers -----';
+        for ($i = 1; $i <= 10; $i++) {
+            $number[$i] = $i;
+        }
+        $addcrtgroup[] =& $mform->createElement('select', 'numanswers', '', $number);
+        $mform->setType('numanswers', PARAM_INT);
+
+        // The 'sticky' type_id value for further new questions.
+        if (isset($SESSION->groupevaluation->numanswers)) {
+          $mform->setDefault('numanswers', $SESSION->groupevaluation->numanswers);
+        } else {
+          $mform->setDefault('numanswers', 5);
+        }
+
+
+        $addcrtgroup[] =& $mform->createElement('submit', 'addcrtbutton', get_string('addnewcriterion', 'groupevaluation'));
+        $mform->addGroup($addcrtgroup, 'addcrtgroup', get_string('possibleanswers', 'groupevaluation'), '  ', false);
+        //$mform->addGroup($addcrtgroup, 'addcrtgroup', get_string('addnewcriterion', 'groupevaluation'), '  ', false);
 
         $crtnum = 0;
 
         // MANAGE CRITERIONS //
 
         $mform->addElement('header', 'managecrt', get_string('managecriterions', 'groupevaluation'));
-        //$mform->addHelpButton('managecrt', 'managecriterions ', 'groupevaluation');
+        $mform->addHelpButton('managecrt', 'managecriterions', 'groupevaluation');
+        $mform->setExpanded('managecrt', true);
 
         $mform->addElement('html', '<div class="qcontainer">');
 
@@ -76,21 +100,10 @@ class groupevaluation_criterions_form extends moodleform {
 
             $crtid = $criterion->id;
             $special = $criterion->special;
+            $pos = $criterion->position;
 
             // Does this groupevaluation contain branching criterions already?
 
-
-            $pos = $criterion->position;
-
-            // No page break in first position!
-            if ($pos == 1) {
-                if ($records = $DB->get_records_select('groupevaluation_criterions', $select, null, 'position ASC')) {
-                    foreach ($records as $record) {
-                        $DB->set_field('groupevaluation_criterions', 'position', $record->position - 1, array('id' => $record->id));
-                    }
-                }
-                redirect($CFG->wwwroot.'/mod/groupevaluation/criterions.php?id='.$groupevaluation->cm->id);
-            }
 
             $crtnum++;
 
@@ -101,108 +114,93 @@ class groupevaluation_criterions_form extends moodleform {
             if ($criterion->text == '<p>  </p>') {
                 $criterion->text = '';
             }
-            if ($tid != QUESPAGEBREAK) {
-                // Needed to print potential media in criterion text.
-                $text = format_text(file_rewrite_pluginfile_urls($criterion->text, 'pluginfile.php',
-                                $criterion->context->id, 'mod_groupevaluation', 'criterion', $criterion->id), FORMAT_HTML);
-            }
+            // Needed to print potential media in criterion text.
+            $text = format_text(file_rewrite_pluginfile_urls($criterion->text, 'pluginfile.php',
+                    $context->id, 'mod_groupevaluation', 'criterion', $crtid), FORMAT_HTML);
+
             $movecrtgroup = array();
 
             $spacer = $OUTPUT->pix_url('spacer');
 
             if (!$this->movecrt) {
                 $mform->addElement('html', '<div class="qn-container">'); // Begin div qn-container.
-                $mextra = array('value' => $criterion->id,
+                $mextra = array('value' => $crtid,
                                 'alt' => $strmove,
                                 'title' => $strmove);
-                $eextra = array('value' => $criterion->id,
+                $eextra = array('value' => $crtid,
                                 'alt' => $stredit,
                                 'title' => $stredit);
-                $rextra = array('value' => $criterion->id,
+                $rextra = array('value' => $crtid,
                                 'alt' => $strremove,
                                 'title' => $strremove);
 
-                /*if ($tid == QUESPAGEBREAK) {
-                    $esrc = $CFG->wwwroot.'/mod/groupevaluation/images/editd.gif';
-                    $eextra = array('disabled' => 'disabled');
-                } else {
-                    $esrc = $CFG->wwwroot.'/mod/groupevaluation/images/edit.gif';
-                }
 
-                if ($tid == QUESPAGEBREAK) {
-                    $esrc = $spacer;
-                    $eextra = array('disabled' => 'disabled');
-                } else {
-                    $esrc = $OUTPUT->pix_url('t/edit');
-                }
+                $esrc = $CFG->wwwroot.'/mod/groupevaluation/images/edit.gif';
+                $esrc = $OUTPUT->pix_url('t/edit');
                 $rsrc = $OUTPUT->pix_url('t/delete');
-                        $qreq = '';*/
+                        $qreq = '';
 
                 // criterion numbers.
-                $manageqgroup[] =& $mform->createElement('static', 'qnums', '',
+                $managecrtgroup[] =& $mform->createElement('static', 'qnums', '',
                                 '<div class="qnums">'.$strposition.' '.$pos.'</div>');
 
                 // Need to index by 'id' since IE doesn't return assigned 'values' for image inputs.
-                $manageqgroup[] =& $mform->createElement('static', 'opentag_'.$criterion->id, '', '');
+                $managecrtgroup[] =& $mform->createElement('static', 'opentag_'.$crtid, '', '');
                 $msrc = $OUTPUT->pix_url('t/move');
 
 
-                $manageqgroup[] =& $mform->createElement('image', 'movebutton['.$criterion->id.']',
+                $managecrtgroup[] =& $mform->createElement('image', 'movebutton['.$crtid.']',
                                 $msrc, $mextra);
-                $manageqgroup[] =& $mform->createElement('image', 'editbutton['.$criterion->id.']', $esrc, $eextra);
-                $manageqgroup[] =& $mform->createElement('image', 'removebutton['.$criterion->id.']', $rsrc, $rextra);
+                $managecrtgroup[] =& $mform->createElement('image', 'editbutton['.$crtid.']', $esrc, $eextra);
+                $managecrtgroup[] =& $mform->createElement('image', 'removebutton['.$crtid.']', $rsrc, $rextra);
 
 
-                $manageqgroup[] =& $mform->createElement('static', 'closetag_'.$criterion->id, '', '');
+                $managecrtgroup[] =& $mform->createElement('static', 'closetag_'.$crtid, '', '');
 
             } else {
-                $manageqgroup[] =& $mform->createElement('static', 'qnum', '',
+                $managecrtgroup[] =& $mform->createElement('static', 'qnum', '',
                                 '<div class="qnums">'.$strposition.' '.$pos.'</div>');
                 $movecrtgroup[] =& $mform->createElement('static', 'qnum', '', '');
 
-                $display = true;
 
-                if ($display) {
-                    // Do not move a page break to first position.
-                    if ($pos == 1) {
-                        $manageqgroup[] =& $mform->createElement('static', 'qnums', '', '');
-                    } else {
-                        if ($this->movecrt == $criterion->id) {
-                            $movecrtgroup[] =& $mform->createElement('cancel', 'cancelbutton', get_string('cancel'));
-                        } else {
-                            $mextra = array('value' => $criterion->id,
-                                            'alt' => $strmove,
-                                            'title' => $strmovehere.' (position '.$pos.')');
-                            $msrc = $OUTPUT->pix_url('movehere');
-                            $movecrtgroup[] =& $mform->createElement('static', 'opentag_'.$criterion->id, '', '');
-                            $movecrtgroup[] =& $mform->createElement('image', 'moveherebutton['.$pos.']', $msrc, $mextra);
-                            $movecrtgroup[] =& $mform->createElement('static', 'closetag_'.$criterion->id, '', '');
-                        }
-                    }
+                if ($this->movecrt == $crtid) {
+                    $movecrtgroup[] =& $mform->createElement('cancel', 'cancelbutton', get_string('cancel'));
                 } else {
-                    $manageqgroup[] =& $mform->createElement('static', 'qnums', '', '');
-                    $movecrtgroup[] =& $mform->createElement('static', 'qnums', '', '');
+                    $mextra = array('value' => $crtid,
+                                    'alt' => $strmove,
+                                    'title' => $strmovehere.' (position '.$pos.')');
+                    $msrc = $OUTPUT->pix_url('movehere');
+                    $movecrtgroup[] =& $mform->createElement('static', 'opentag_'.$crtid, '', '');
+                    $movecrtgroup[] =& $mform->createElement('image', 'moveherebutton['.$pos.']', $msrc, $mextra);
+                    $movecrtgroup[] =& $mform->createElement('static', 'closetag_'.$crtid, '', '');
                 }
+
             }
             if ($criterion->name) {
                 $qname = '('.$criterion->name.')';
             } else {
                 $qname = '';
             }
-            $manageqgroup[] =& $mform->createElement('static', 'qname_'.$criterion->id, '', $qname);
+            $managecrtgroup[] =& $mform->createElement('static', 'qname_'.$crtid, '', $qname);
 
+
+
+          //  $mform->addElement('html', '</div>'); // End div qn-container.
 
             if ($this->movecrt && $pos < $movecrtposition) {
                 $mform->addGroup($movecrtgroup, 'movecrtgroup', '', '', false);
             }
             if ($this->movecrt) {
-                if ($this->movecrt == $criterion->id && $display) {
+                if ($this->movecrt == $crtid) {
                     $mform->addElement('html', '<div class="moving" title="'.$strmove.'">'); // Begin div qn-container.
                 } else {
                     $mform->addElement('html', '<div class="qn-container">'); // Begin div qn-container.
                 }
             }
-            $mform->addGroup($manageqgroup, 'manageqgroup', '', '&nbsp;', false);
+            $mform->addGroup($managecrtgroup, 'manageqgroup', '', '&nbsp;', false);
+
+            $ctrnumber = '<div class="qn-info"><h2 class="qn-number">'.$pos.'</h2></div>';
+            $mform->addElement('static', 'qcontent_'.$crtid, '',$ctrnumber.'<div class="qn-question">'.$text.'</div>');
 
             $mform->addElement('html', '</div>'); // End div qn-container.
 
@@ -214,6 +212,13 @@ class groupevaluation_criterions_form extends moodleform {
         if ($this->movecrt) {
             $mform->addElement('hidden', 'movecrt', $this->movecrt);
         }
+
+
+        $mform->addElement('header', 'savedcrt', get_string('savedcriterions', 'groupevaluation'));
+        $mform->addHelpButton('savedcrt', 'savedcriterions', 'groupevaluation');
+        $mform->addElement('html', '<div class="qcontainer">');
+
+        //$mform->addElement('html', '</div>'); // End div qn-container.
 
         // Hidden fields.
         $mform->addElement('hidden', 'id', 0);
@@ -236,20 +241,21 @@ class groupevaluation_edit_criterion_form extends moodleform {
 
     public function definition() {
         global $CFG, $COURSE, $groupevaluation, $criterion, $groupevaluationrealms, $SESSION;
-        global $DB;
+        global $DB, $cm;
 
         $mform    =& $this->_form;
 
         // Display different messages for new criterion creation and existing criterion modification.
-        if (isset($criterion->crtid)) {
+        /*if (isset($crtid)) {
             $streditcriterion = get_string('editcriterion', 'groupevaluation');
         } else {
             $streditcriterion = get_string('addnewcriterion', 'groupevaluation');
         }
+        $mform->addElement('header', 'criterionhdredit', $streditcriterion);*/
 
-        $mform->addElement('header', 'criterionhdredit', $streditcriterion);
+        $mform->addElement('header', 'general', get_string('general', 'form'));
 
-        // Name and spcial fields.
+        // Name field
         $stryes = get_string('yes');
         $strno  = get_string('no');
 
@@ -260,12 +266,20 @@ class groupevaluation_edit_criterion_form extends moodleform {
         $mform->addRule('name', get_string('maximumchars', '', 255), 'maxlength', 255, 'client');
         $mform->addHelpButton('name', 'criterionname', 'groupevaluation');
 
+        // Special field
         $specialgroup = array();
         $specialgroup[] =& $mform->createElement('radio', 'special', '', $stryes, 1);
         $specialgroup[] =& $mform->createElement('radio', 'special', '', $strno, 0);
         $mform->addGroup($specialgroup, 'specialgroup', get_string('special', 'groupevaluation'), ' ', false);
         $mform->addHelpButton('specialgroup', 'special', 'groupevaluation');
         $mform->setDefault($stryes.$strno, 0);
+
+        // Weight field
+        $mform->addElement('text', 'weight', get_string('weight', 'groupevaluation'));
+        $mform->setType('weight', PARAM_INT);
+        $mform->addHelpButton('weight', 'weight', 'groupevaluation');
+        $mform->setDefault('weight', 20);
+
         // text field.
         $modcontext    = $this->_customdata['modcontext'];
         $editoroptions = array('maxfiles' => EDITOR_UNLIMITED_FILES, 'trusttext' => true, 'context' => $modcontext);
@@ -276,20 +290,21 @@ class groupevaluation_edit_criterion_form extends moodleform {
         // Options section:
         // has answer options ... so show that part of the form.
 
+        $mform->addElement('header', 'answers', get_string('possibleanswers', 'groupevaluation'));
+        $mform->addHelpButton('answers', 'possibleanswers', 'groupevaluation');
 
-        $mform->addElement('html', '<div class="qoptcontainer">');
-
-        $options = array('wrap' => 'virtual', 'class' => 'qopts');
-        $mform->addElement('textarea', 'allchoices', get_string('possibleanswers', 'groupevaluation'), $options);
-        $mform->setType('allchoices', PARAM_RAW);
-        $mform->addRule('allchoices', null, 'required', null, 'client');
-        $mform->addHelpButton('allchoices', 'possibleanswers', 'groupevaluation');
-
-        $mform->addElement('html', '</div>');
-
+        for ($i = 1; $i <= $criterion->numanswers; $i++) {
+          $mform->addElement('html', '<div class="qoptcontainer">');
+          $options = array('wrap' => 'virtual', 'class' => 'qopts');
+          $mform->addElement('textarea', 'tag_'.$i, get_string('possibleanswer', 'groupevaluation',$i), $options);
+          $mform->setType('tag_'.$i, PARAM_RAW);
+          $mform->addRule('tag_'.$i, null, 'required', null, 'client');
+          //$mform->disabledIf('tags', 'someselect', 'eq', 42);
+          $mform->addElement('html', '</div>');
+        }
 
         // Hidden fields.
-        $mform->addElement('hidden', 'id', 0);
+        $mform->addElement('hidden', 'id', $cm->id);
         $mform->setType('id', PARAM_INT);
         $mform->addElement('hidden', 'crtid', 0); //Criterionid a 0
         $mform->setType('crtid', PARAM_INT);
@@ -298,13 +313,31 @@ class groupevaluation_edit_criterion_form extends moodleform {
         $mform->addElement('hidden', 'groupevaluationid', $groupevaluation->id);
         $mform->setType('groupevaluationid', PARAM_INT);
 
+
+        /*$element = new MoodleQuickForm_submitlink('elementName', 'attributes');
+         $element->_js = 'write your javascript here, but do not write the <script...> and </script> tags';
+         $element->_onclick = 'write your onclick call here, followed by "return false;"';
+         $mform->addElement($element);*/
+
+        /*$mform->addElement('submit', 'addanswer', get_string('addanswer', 'groupevaluation'), true);
+        $mform->addElement('submitlink', 'addanswer', 'Add answer', array('_js' => '', '_onclick' => 'skipClientValidation = true;'));
+        $mform->addElement('submitlink', 'addanswer', 'Add answer', array('href' => 'www.google.com', 'onclick' => 'skipClientValidation = true;'));
+        */
+        /*
+        //$mform->addElement('html', '<input name="addanswer" value="'.get_string('addanswer','groupevaluation').
+        //                  '" onclick="skipClientValidation = true; return=true;" id="id_addanswer" type="submit">');
+
+        $mform->addElement('html', '<input name="addanswers" value="Blanks for 3 more choices" onclick="skipClientValidation = true;" id="id_addanswers" type="submit">');
+        */
+
         // Buttons.
         $buttonarray[] = &$mform->createElement('submit', 'submitbutton', get_string('savechanges'));
-        if (isset($criterion->crtid)) {
+        if (isset($crtid)) {
             $buttonarray[] = &$mform->createElement('submit', 'makecopy', get_string('saveasnew', 'groupevaluation'));
         }
         $buttonarray[] = &$mform->createElement('cancel');
         $mform->addGroup($buttonarray, 'buttonar', '', array(' '), false);
+
     }
 
     public function validation($data, $files) {

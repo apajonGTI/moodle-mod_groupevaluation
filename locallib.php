@@ -69,7 +69,9 @@ defined('MOODLE_INTERNAL') || die();
 
  function move_criterion($criterions, $movecrtid, $movetopos) {
      global $DB;
-
+     $table = "mdl_groupevaluation_criterions";
+     $column = "position";
+     
      $movecriterion = $criterions[$movecrtid];
 
      if (is_array($criterions)) {
@@ -80,11 +82,15 @@ defined('MOODLE_INTERNAL') || die();
              }
              if ($criterion->id == $movecriterion->id) {
                  $movecriterion->position = $movetopos;
-                 $DB->update_record("groupevaluation_criterions", $movecriterion);
+                 //$DB->update_record("groupevaluation_criterions", new stdClass($movecriterion));
+                 $DB->execute("UPDATE $table SET $column=? WHERE id=?", array($movetopos, $movecriterion->id));
+
                  continue;
              }
              $criterion->position = $index;
-             $DB->update_record("groupevaluation_criterions", $criterion);
+             //$DB->update_record("groupevaluation_criterions", $criterion);
+             $DB->execute("UPDATE $table SET $column=? WHERE id=?", array($index, $criterion->id));
+
              $index++;
          }
          return true;
