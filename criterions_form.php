@@ -245,6 +245,9 @@ class groupevaluation_edit_criterion_form extends moodleform {
 
         $mform    =& $this->_form;
 
+        $stryes = get_string('yes');
+        $strno  = get_string('no');
+
         // Display different messages for new criterion creation and existing criterion modification.
         /*if (isset($crtid)) {
             $streditcriterion = get_string('editcriterion', 'groupevaluation');
@@ -256,9 +259,6 @@ class groupevaluation_edit_criterion_form extends moodleform {
         $mform->addElement('header', 'general', get_string('general', 'form'));
 
         // Name field
-        $stryes = get_string('yes');
-        $strno  = get_string('no');
-
         $mform->addElement('text', 'name', get_string('criterionname', 'groupevaluation'),
                         array('size' => '30', 'maxlength' => '30'));
         $mform->setType('name', PARAM_TEXT);
@@ -272,6 +272,14 @@ class groupevaluation_edit_criterion_form extends moodleform {
         $specialgroup[] =& $mform->createElement('radio', 'special', '', $strno, 0);
         $mform->addGroup($specialgroup, 'specialgroup', get_string('special', 'groupevaluation'), ' ', false);
         $mform->addHelpButton('specialgroup', 'special', 'groupevaluation');
+        $mform->setDefault($stryes.$strno, 0);
+
+        // saved field
+        $savedgroup = array();
+        $savedgroup[] =& $mform->createElement('radio', 'saved', '', $stryes, 1);
+        $savedgroup[] =& $mform->createElement('radio', 'saved', '', $strno, 0);
+        $mform->addGroup($savedgroup, 'savedgroup', get_string('savecriterion', 'groupevaluation'), ' ', false);
+        $mform->addHelpButton('savedgroup', 'savecriterion', 'groupevaluation');
         $mform->setDefault($stryes.$strno, 0);
 
         // Weight field
@@ -293,7 +301,8 @@ class groupevaluation_edit_criterion_form extends moodleform {
         $mform->addElement('header', 'answers', get_string('possibleanswers', 'groupevaluation'));
         $mform->addHelpButton('answers', 'possibleanswers', 'groupevaluation');
 
-        for ($i = 1; $i <= $criterion->numanswers; $i++) {
+        $numanswers = $criterion->numanswers;;
+        for ($i = 1; $i <= $numanswers; $i++) {
           $mform->addElement('html', '<div class="qoptcontainer">');
           $options = array('wrap' => 'virtual', 'class' => 'qopts');
           $mform->addElement('textarea', 'tag_'.$i, get_string('possibleanswer', 'groupevaluation',$i), $options);
@@ -312,6 +321,8 @@ class groupevaluation_edit_criterion_form extends moodleform {
         $mform->setType('action', PARAM_RAW);
         $mform->addElement('hidden', 'groupevaluationid', $groupevaluation->id);
         $mform->setType('groupevaluationid', PARAM_INT);
+        $mform->addElement('hidden', 'numanswers', $numanswers);
+        $mform->setType('numanswers', PARAM_INT);
 
 
         /*$element = new MoodleQuickForm_submitlink('elementName', 'attributes');

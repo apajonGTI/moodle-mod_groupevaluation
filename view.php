@@ -94,19 +94,7 @@ if (has_capability('mod/groupevaluation:readresponses', $context)) {
 //***************************************************
 if (has_capability('mod/groupevaluation:editsurvey', $context)) {
 
-  /*// TODO borrar
-  $tableaux = 'groupevaluation';
-  $selectaux = "id = $groupevaluation->id"; //is put into the where clause
-  $resultaux = $DB->get_records_select($tableaux,$selectaux);
-  foreach ($resultaux as $aux) {
-    $array = get_object_vars ($aux);
-    foreach ($array as $a) {
-      echo '<p>'.$a.'</p>';
-    }
-  }*/
-
-  //$result = $DB->get_records_sql('SELECT COUNT(*) FROM groupevaluation_surveys WHERE groupevaluationid = ?', array($groupevaluation->id));
-  $table = 'groupevaluation_surveys';
+  $table = 'groupevaluation_criterions';
   $select = "groupevaluationid = $groupevaluation->id"; //is put into the where clause
   $result = $DB->get_records_select($table,$select);
   if (!$result) {
@@ -115,39 +103,37 @@ if (has_capability('mod/groupevaluation:editsurvey', $context)) {
   } else {
     echo '<a href="'.$CFG->wwwroot.htmlspecialchars('/mod/groupevaluation/criterions.php?'.'id='.$cm->id).'">'.'<strong>'.get_string("editsurvey", "groupevaluation").'</strong></a>';
   }
-} else {// TODO.
-  $select = 'groupevaluationid = '.$groupevaluation->id.' AND userid = \''.$USER->id.'\'';
-  $resume = $DB->get_record_select('groupevaluation_surveys', $select, null) !== false;
+} else { // Unprivileged user
+
+  $select = 'groupevaluationid = '.$groupevaluation->id.' AND authorid = \''.$USER->id.'\'';
+  $surveys = $DB->get_record_select('groupevaluation_surveys', $select);
   if (!$resume) {
-      $complete = get_string('answerquestions', 'groupevaluation');
+    $href = $CFG->wwwroot.htmlspecialchars('/mod/groupevaluation/complete.php?id='.$cm->id.'&resume='.$resume);
+
+    echo $OUTPUT->heading(get_string("group",'groupevaluation'), 3, 'helptitle', 'uniqueid');
+    echo $OUTPUT->heading('Grupo 0', 5, 'helptitle', 'uniqueid');
+
+    echo $OUTPUT->heading(get_string("evaluations",'groupevaluation'), 3, 'helptitle', 'uniqueid');
+
+    echo $OUTPUT->heading('Alumno Uno', 5, 'helptitle', 'uniqueid');
+
+    echo('<div><a href="'.$href.'" class="btn btn-default btn-lg" role="button">'.
+        get_string("evaluate",'groupevaluation').'</a></div>'); //TODO substituir por get_string
+
+    echo $OUTPUT->heading('Alumno Dos', 5, 'helptitle', 'uniqueid');
+    echo('<div><a href="'.$href.'" class="btn btn-default btn-lg" role="button">'.
+        get_string("evaluate",'groupevaluation').'</a></div>'); //TODO substituir por get_string
+
+
+
+
+    // $complete = get_string('evaluate', 'groupevaluation');
+    // $complete = get_string('resumesurvey', 'groupevaluation');
+
   } else {
-      $complete = get_string('resumesurvey', 'groupevaluation');
+
   }
-  $criterions = $DB->get_records('groupevaluation_criterions', array('groupevaluationid' => $groupevaluation->id), 'id');
 
-  //if ($criterions) {
-      $href = $CFG->wwwroot.htmlspecialchars('/mod/groupevaluation/complete.php?id='.$cm->id.'&resume='.$resume);
-
-      echo $OUTPUT->heading(get_string("group",'groupevaluation'), 3, 'helptitle', 'uniqueid');
-      echo $OUTPUT->heading('Grupo 0', 5, 'helptitle', 'uniqueid');
-
-      echo $OUTPUT->heading(get_string("evaluations",'groupevaluation'), 3, 'helptitle', 'uniqueid');
-
-      echo $OUTPUT->heading('Alumno Uno', 5, 'helptitle', 'uniqueid');
-
-      echo('<div><a href="'.$href.'" class="btn btn-default btn-lg" role="button">'.
-          get_string("evaluate",'groupevaluation').'</a></div>'); //TODO substituir por get_string
-
-      echo $OUTPUT->heading('Alumno Dos', 5, 'helptitle', 'uniqueid');
-      echo('<div><a href="'.$href.'" class="btn btn-default btn-lg" role="button">'.
-          get_string("evaluate",'groupevaluation').'</a></div>'); //TODO substituir por get_string
-
-  //}
 }
 
-
-//echo $OUTPUT->box_end();
-
-
-// Finish the page.
 echo $OUTPUT->footer();

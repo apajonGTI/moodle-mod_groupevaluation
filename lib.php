@@ -32,9 +32,11 @@
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Example constant, you probably want to remove this :-)
+ * Constants
  */
-define('groupevaluation_ULTIMATE_ANSWER', 42);
+ define('groupevaluation_INCOMPLETE', 0);
+ define('groupevaluation_COMPLETE', 1);
+ define('groupevaluation_DONE', 2);
 
 /* Moodle core API */
 
@@ -84,6 +86,26 @@ function groupevaluation_add_instance(stdClass $groupevaluation, mod_groupevalua
     $groupevaluation->id = $DB->insert_record('groupevaluation', $groupevaluation);
 
     groupevaluation_grade_item_update($groupevaluation);
+
+    // ***************** nuevo ******************
+    /*
+    $timecreated = time();
+    //TODO Seguir con esto -> necesitaremos un for dentro de otro (primero los grupos y luego por cada usuario una encuesta por cada compeñero y orta para el.)
+    foreach ($users as $user) {
+
+      foreach ($groupusers as $groupuser) {
+        $surveyrecord = new stdClass();
+        $surveyrecord->authorid = $user->id;
+        $surveyrecord->userid = $groupuser->id;
+        $surveyrecord->groupid  = $groupid;
+        $surveyrecord->groupevaluationid = $groupevaluation->id;
+        $surveyrecord->timecreated = $timecreated;
+
+        $resulttag = $DB->insert_record('groupevaluation_surveys', $surveyrecord);
+      }
+    }
+    */
+    // ***************** FIN nuevo ******************
 
     return $groupevaluation->id;
 }
