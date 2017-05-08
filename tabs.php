@@ -221,11 +221,11 @@ if (($canviewallgroups || ($canviewgroups))
     }
 }
 
-if (has_capability('mod/groupevaluation:viewsingleresponse', $context) && ($canviewallgroups || $canviewgroups)) {
-    $nonrespondenturl = new moodle_url('/mod/groupevaluation/show_nonrespondents.php', array('id' => $cm->id));
-    $row[] = new tabobject('nonrespondents',
-                    $nonrespondenturl->out(),
-                    get_string('show_nonrespondents', 'groupevaluation'));
+if (has_capability('mod/groupevaluation:editsurvey', $context) && ($canviewallgroups || $canviewgroups)) {
+    $groupsurl = new moodle_url('/mod/groupevaluation/groups.php', array('id' => $cm->id));
+    $row[] = new tabobject('groups',
+                    $groupsurl->out(),
+                    get_string('groups', 'groupevaluation'));
 }
 
 if ((count($row) > 1) || (!empty($row2) && (count($row2) > 1))) {

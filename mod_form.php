@@ -65,7 +65,7 @@ class mod_groupevaluation_mod_form extends moodleform_mod {
         $this->standard_intro_elements(get_string('introduction', 'groupevaluation'));
 
         // -------------------------------------------------------------------------------
-        $mform->addElement('header', 'timing', get_string('timing', 'groupevaluation'));
+        $mform->addElement('header', 'timing', get_string('timing', 'form'));
         // Open and close dates.
         $mform->addElement('date_time_selector', 'timeopen', get_string('groupevaluationopen', 'groupevaluation'),
                 self::$datefieldoptions);

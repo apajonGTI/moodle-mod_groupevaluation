@@ -131,5 +131,31 @@ $capabilities = array(
             'editingteacher' => CAP_ALLOW,
             'manager' => CAP_ALLOW
         )
+    ),
+
+    // Ability to preview a groupevaluation.
+    'mod/groupevaluation:preview' => array(
+
+        'captype' => 'read',
+        'contextlevel' => CONTEXT_MODULE,
+        'legacy' => array(
+                        'manager' => CAP_ALLOW,
+                        'coursecreator' => CAP_ALLOW,
+                        'teacher' => CAP_ALLOW,
+                        'editingteacher' => CAP_ALLOW
+        )
+    ),
+
+    // Ability to message students from a groupevaluation.
+    'mod/groupevaluation:message' => array(
+
+        'riskbitmask' => RISK_SPAM,
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_MODULE,
+        'archetypes' => array(
+                            'manager' => CAP_ALLOW,
+                            'teacher' => CAP_ALLOW,
+                            'editingteacher' => CAP_ALLOW
+        )
     )
 );

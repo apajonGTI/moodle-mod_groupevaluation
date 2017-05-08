@@ -27,6 +27,7 @@
  require_once(dirname(__FILE__).'/lib.php');
 
 defined('MOODLE_INTERNAL') || die();
+define('groupevaluation_DEFAULT_PAGE_COUNT', 20);
 
 /*
  * TODO Probablemente no utilice esta funcion -> BORRAR
@@ -71,7 +72,7 @@ defined('MOODLE_INTERNAL') || die();
      global $DB;
      $table = "mdl_groupevaluation_criterions";
      $column = "position";
-     
+
      $movecriterion = $criterions[$movecrtid];
 
      if (is_array($criterions)) {

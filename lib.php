@@ -87,26 +87,6 @@ function groupevaluation_add_instance(stdClass $groupevaluation, mod_groupevalua
 
     groupevaluation_grade_item_update($groupevaluation);
 
-    // ***************** nuevo ******************
-    /*
-    $timecreated = time();
-    //TODO Seguir con esto -> necesitaremos un for dentro de otro (primero los grupos y luego por cada usuario una encuesta por cada compeñero y orta para el.)
-    foreach ($users as $user) {
-
-      foreach ($groupusers as $groupuser) {
-        $surveyrecord = new stdClass();
-        $surveyrecord->authorid = $user->id;
-        $surveyrecord->userid = $groupuser->id;
-        $surveyrecord->groupid  = $groupid;
-        $surveyrecord->groupevaluationid = $groupevaluation->id;
-        $surveyrecord->timecreated = $timecreated;
-
-        $resulttag = $DB->insert_record('groupevaluation_surveys', $surveyrecord);
-      }
-    }
-    */
-    // ***************** FIN nuevo ******************
-
     return $groupevaluation->id;
 }
 
@@ -528,4 +508,32 @@ function groupevaluation_get_completion_state($course, $cm, $userid, $type) {
         // Completion option is not enabled so just return $type.
         return $type;
     }
+}
+
+/**
+ * que ase?
+ *
+ * @param int $groupevaluationid
+ * @param array $groups
+ * @return
+ */
+function groupevaluation_create_surveys($groupevaluationid, $groupid) {
+    global $DB;
+
+    $timecreated = time();
+    $members = $DB->get_records('groups_members', array('groupid' => $groupid));
+
+    foreach ($members as $author) {
+      foreach ($members as $groupuser) {
+        $surveyrecord = new stdClass();
+        $surveyrecord->authorid = $author->userid;
+        $surveyrecord->userid = $groupuser->userid;
+        $surveyrecord->groupid  = $groupid;
+        $surveyrecord->groupevaluationid = $groupevaluationid;
+        $surveyrecord->timecreated = $timecreated;
+
+        $resulttag = $DB->insert_record('groupevaluation_surveys', $surveyrecord);
+      }
+    }
+    return true;
 }
