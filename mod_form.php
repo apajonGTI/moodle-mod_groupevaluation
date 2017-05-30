@@ -66,6 +66,8 @@ class mod_groupevaluation_mod_form extends moodleform_mod {
 
         // -------------------------------------------------------------------------------
         $mform->addElement('header', 'timing', get_string('timing', 'form'));
+        $mform->setExpanded('timing');
+
         // Open and close dates.
         $mform->addElement('date_time_selector', 'timeopen', get_string('groupevaluationopen', 'groupevaluation'),
                 self::$datefieldoptions);
@@ -78,50 +80,45 @@ class mod_groupevaluation_mod_form extends moodleform_mod {
         $mform->addElement('header', 'results', get_string('results', 'groupevaluation'));
         $mform->addHelpButton('results', 'results', 'groupevaluation');
 
-        /*$addqgroup = array();
 
-        $addqgroup[] =& $mform->createElement('text', 'softupperdeviation', get_string('softupperdeviation', 'groupevaluation'));
-        $mform->setType('softupperdeviation', PARAM_INT);
-        $mform->addHelpButton('softupperdeviation', 'softupperdeviation', 'groupevaluation');
-        $mform->setDefault('softupperdeviation', 20);
 
-        $addqgroup[] =& $mform->createElement('text', 'softlowerdeviation', get_string('softlowerdeviation', 'groupevaluation'));
-        $mform->setType('softlowerdeviation', PARAM_INT);
-        $mform->addHelpButton('softlowerdeviation', 'softlowerdeviation', 'groupevaluation');
-        $mform->setDefault('softlowerdeviation', -20);
+        // -------------------- VIEW CHECKBOXES ----------------------------------------
 
-        $addqgroup[] =& $mform->createElement('text', 'hardupperdeviation', get_string('hardupperdeviation', 'groupevaluation'));
-        $mform->setType('hardupperdeviation', PARAM_INT);
-        $mform->addHelpButton('hardupperdeviation', 'hardupperdeviation', 'groupevaluation');
-        $mform->setDefault('hardupperdeviation', 40);
+        $mform->addElement('html', '<div class="viewcheckbox" style="float:left;">');
 
-        $addqgroup[] =& $mform->createElement('text', 'hardlowerdeviation', get_string('hardlowerdeviation', 'groupevaluation'));
-        $mform->setType('hardlowerdeviation', PARAM_INT);
-        $mform->addHelpButton('hardlowerdeviation', 'hardlowerdeviation', 'groupevaluation');
-        $mform->setDefault('hardlowerdeviation', -40);
+        $mform->addElement('advcheckbox', 'viewaverage', get_string('average', 'groupevaluation'), null, array('group' => 1), array(0, 1));
+        $mform->setDefault('viewaverage', 1);
 
-        $addqgroup[] =& $mform->createElement('advcheckbox', 'fieldmaxassessment', get_string('fieldmaxassessment', 'groupevaluation'), null, array('group' => 1, ), array(0, 1));
-        $addqgroup[] =& $mform->createElement('advcheckbox', 'fieldminassessment', get_string('fieldminassessment', 'groupevaluation'), null, array('group' => 1, ), array(0, 1));
-        $addqgroup[] =& $mform->createElement('advcheckbox', 'fieldselfassessment', get_string('fieldselfassessment', 'groupevaluation'), null, array('group' => 1, ), array(0, 1));
-        $addqgroup[] =& $mform->createElement('advcheckbox', 'fielddeviation', get_string('fielddeviation', 'groupevaluation'), null, array('group' => 1, ), array(0, 1));
-        $addqgroup[] =& $mform->createElement('advcheckbox', 'fieldassessment', get_string('fieldassessment', 'groupevaluation'), null, array('group' => 1, ), array(0, 1));
+        $mform->addElement('advcheckbox', 'viewselfevaluation', get_string('selfevaluation', 'groupevaluation'), null, array('group' => 1), array(0, 1));
+        $mform->setDefault('viewselfevaluation', 1);
 
-        $mform->addGroup($addqgroup, 'addcrtgroup', '', ' ', false);*/
+        $mform->addElement('advcheckbox', 'viewdeviation', get_string('deviation', 'groupevaluation'), null, array('group' => 1), array(0, 1));
+        $mform->setDefault('viewdeviation', 1);
 
-        // -------------------------------------------------------------------------------
+        $mform->addElement('advcheckbox', 'viewweight', get_string('weight', 'groupevaluation'), null, array('group' => 1), array(0, 1));
+        $mform->addHelpButton('viewweight', 'weight', 'groupevaluation');
+        $mform->setDefault('viewweight', 0);
 
-        $mform->addElement('advcheckbox', 'fieldmaxassessment', get_string('fieldmaxassessment', 'groupevaluation'), null, array('group' => 1, ), array(0, 1));
-        $mform->setDefault('fieldmaxassessment', 1);
-        $mform->addElement('advcheckbox', 'fieldminassessment', get_string('fieldminassessment', 'groupevaluation'), null, array('group' => 1, ), array(0, 1));
-        $mform->setDefault('fieldminassessment', 1);
-        $mform->addElement('advcheckbox', 'fieldselfassessment', get_string('fieldselfassessment', 'groupevaluation'), null, array('group' => 1, ), array(0, 1));
-        $mform->setDefault('fieldselfassessment', 1);
-        $mform->addElement('advcheckbox', 'fielddeviation', get_string('fielddeviation', 'groupevaluation'), null, array('group' => 1, ), array(0, 1));
-        $mform->setDefault('fielddeviation', 1);
-        $mform->addElement('advcheckbox', 'fieldassessment', get_string('fieldassessment', 'groupevaluation'), null, array('group' => 1, ), array(0, 1));
-        $mform->setDefault('fieldassessment', 1);
+        $mform->addElement('html', '</div>');
+        $mform->addElement('html', '<div class="viewcheckbox" style="float:left;">');
+
+        $mform->addElement('advcheckbox', 'viewmaximum', get_string('maximum', 'groupevaluation'), null, array('group' => 1), array(0, 1));
+        $mform->setDefault('viewmaximum', 1);
+
+        $mform->addElement('advcheckbox', 'viewminimum', get_string('minimum', 'groupevaluation'), null, array('group' => 1), array(0, 1));
+        $mform->setDefault('viewminimum', 1);
+
+        $mform->addElement('advcheckbox', 'viewgrade', get_string('grade', 'groupevaluation'), null, array('group' => 1), array(0, 1));
+        $mform->setDefault('viewgrade', 1);
+
+        $mform->addElement('advcheckbox', 'viewanswers', get_string('viewanswers', 'groupevaluation'), null, array('group' => 1), array(0, 1));
+        $mform->addHelpButton('viewanswers', 'viewanswers', 'groupevaluation');
+        $mform->setDefault('viewanswers', 0);
+
+        $mform->addElement('html', '</div>');
 
         // -------------------------------------------------------------------------------
+        $mform->addElement('html', '<div style="clear: left;">');
 
         $addsoftdevgroup = array();
 
@@ -148,6 +145,8 @@ class mod_groupevaluation_mod_form extends moodleform_mod {
 
         $mform->addGroup($addharddevgroup, 'addharddevgroup', get_string('harddeviation', 'groupevaluation'), ' ', false);
         $mform->addHelpButton('addharddevgroup', 'harddeviation', 'groupevaluation');
+
+        $mform->addElement('html', '</div>');
 
         // -------------------------------------------------------------------------------
 

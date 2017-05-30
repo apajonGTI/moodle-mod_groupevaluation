@@ -15,12 +15,20 @@
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="timeopen" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Time when the groupevaluation was started."/>
         <FIELD NAME="timeclose" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Time when the groupevaluation was finished. 0 if the groupevaluation has not been submitted yet."/>
-        <FIELD NAME="useexamples" TYPE="int" LENGTH="4" NOTNULL="false" DEFAULT="0" SEQUENCE="false" COMMENT="Comment"/>
         <FIELD NAME="grade" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="100" SEQUENCE="false" COMMENT="The maximum grade. Can be negative to indicate the use of a scale."/>
         <FIELD NAME="hardlowerdeviation" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="100" SEQUENCE="false" COMMENT="Above this limit, it is considerated a hard deviation."/>
         <FIELD NAME="hardupperdeviation" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="100" SEQUENCE="false" COMMENT="Below this limit, it is considerated a hard deviation."/>
         <FIELD NAME="softlowerdeviation" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="100" SEQUENCE="false" COMMENT="Above this limit, it is considerated a soft deviation."/>
         <FIELD NAME="softupperdeviation" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="100" SEQUENCE="false" COMMENT="Below this limit, it is considerated a soft deviation."/>
+        <FIELD NAME="viewaverage" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Comment"/>
+        <FIELD NAME="viewselfevaluation" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Comment"/>
+        <FIELD NAME="viewdeviation" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Comment"/>
+        <FIELD NAME="viewmaximum" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Comment"/>
+        <FIELD NAME="viewminimum" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Comment"/>
+        <FIELD NAME="viewgrade" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Comment"/>
+        <FIELD NAME="viewweight" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Comment"/>
+        <FIELD NAME="viewanswers" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Comment"/>
+        <FIELD NAME="viewresults" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Comment"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
@@ -62,18 +70,21 @@
     <TABLE NAME="groupevaluation_criterions" COMMENT="Stores the criterions that can be used in surveys.">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-        <FIELD NAME="groupevaluationid" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="groupevaluationid" TYPE="int" LENGTH="10" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="name" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="text" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="Description of the criterion"/>
         <FIELD NAME="textformat" TYPE="int" LENGTH="4" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" COMMENT="Format of the description field (MOODLE, HTML, MARKDOWN...)"/>
         <FIELD NAME="weight" TYPE="number" LENGTH="10" NOTNULL="false" SEQUENCE="false" DECIMALS="5" COMMENT="The computed grade 0..100 for this assessment. If NULL then it has not been computed yet."/>
         <FIELD NAME="saved" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="defaultcriterion" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="languagecode" TYPE="char" LENGTH="4" NOTNULL="false" SEQUENCE="false"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="false"/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="createdby" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="modifiedby" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
-        <FIELD NAME="special" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Special criterion in the evaluation"/>
+        <FIELD NAME="special" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Special criterion in the evaluation."/>
         <FIELD NAME="position" TYPE="int" LENGTH="10" NOTNULL="false" DEFAULT="0" SEQUENCE="false"/>
+        <FIELD NAME="required" TYPE="int" LENGTH="4" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="Required criterion in the survey."/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
@@ -87,43 +98,17 @@
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
         <FIELD NAME="surveyid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The id of the survey"/>
-        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The id of the user who makes this assessment"/>
         <FIELD NAME="criterionid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The id of the criterion"/>
         <FIELD NAME="assessment" TYPE="number" LENGTH="10" NOTNULL="false" SEQUENCE="false" DECIMALS="5" COMMENT="The answer for this criterion. If NULL then it has not been answered yet."/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
         <KEY NAME="surveyid" TYPE="foreign" FIELDS="surveyid" REFTABLE="groupevaluation_surveys" REFFIELDS="id"/>
-        <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
         <KEY NAME="criterionid" TYPE="foreign" FIELDS="criterionid" REFTABLE="groupevaluation_criterion" REFFIELDS="id"/>
       </KEYS>
       <INDEXES>
-        <INDEX NAME="assessment" UNIQUE="false" FIELDS="surveyid, userid, criterionid"/>
-      </INDEXES>
-    </TABLE>
-
-    <!--> Tabla hecha <-->
-    <!--> TODO HACE FALTA? <-->
-    <TABLE NAME="groupevaluation_results" COMMENT="Summary table that stores the results of group evaluations.">
-      <FIELDS>
-        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true"/>
-        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The id of the user who makes this assessment"/>
-        <FIELD NAME="criterionid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The id of the criterion"/>
-        <FIELD NAME="groupevaluationid" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="false" COMMENT="The id of the groupevaluation instance"/>
-        <FIELD NAME="average" TYPE="number" LENGTH="10" NOTNULL="false" SEQUENCE="false" DECIMALS="5" COMMENT="The average of the survey responses to this criterion."/>
-        <FIELD NAME="maximum" TYPE="number" LENGTH="10" NOTNULL="false" SEQUENCE="false" DECIMALS="5" COMMENT="The maximum assessment to this criterion."/>
-        <FIELD NAME="minimum" TYPE="number" LENGTH="10" NOTNULL="false" SEQUENCE="false" DECIMALS="5" COMMENT="The minimum assessment to this criterion."/>
-        <FIELD NAME="selfassessment" TYPE="number" LENGTH="10" NOTNULL="false" SEQUENCE="false" DECIMALS="5" COMMENT="The self assessment by the user to this criterion."/>
-        <FIELD NAME="feedback" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="Teacher comments of the group evaluation."/>
-      </FIELDS>
-      <KEYS>
-        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
-        <KEY NAME="userid" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id"/>
-        <KEY NAME="criterionid" TYPE="foreign" FIELDS="criterionid" REFTABLE="groupevaluation_criterion" REFFIELDS="id"/>
-        <KEY NAME="groupevaluationid" TYPE="foreign" FIELDS="groupevaluationid" REFTABLE="groupevaluation" REFFIELDS="id"/>
-      </KEYS>
-      <INDEXES>
-        <INDEX NAME="results" UNIQUE="false" FIELDS="groupevaluationid, userid"/>
+        <INDEX NAME="surveyid" UNIQUE="false" FIELDS="surveyid"/>
+        <INDEX NAME="assessment" UNIQUE="false" FIELDS="surveyid, criterionid"/>
       </INDEXES>
     </TABLE>
 
@@ -155,13 +140,14 @@
         <FIELD NAME="text" TYPE="text" NOTNULL="true" SEQUENCE="false" COMMENT="Description of the answer"/>
         <FIELD NAME="value" TYPE="number" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" DECIMALS="5" COMMENT="Numerical value associated with this tags."/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="The last time this grade changed."/>
+        <FIELD NAME="position" TYPE="int" LENGTH="10" NOTNULL="false" DEFAULT="0" SEQUENCE="false"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
         <KEY NAME="criterionid" TYPE="foreign" FIELDS="criterionid" REFTABLE="groupevaluation_criterion" REFFIELDS="id"/>
       </KEYS>
       <INDEXES>
-        <INDEX NAME="userid" UNIQUE="false" FIELDS="criterionid"/>
+        <INDEX NAME="criterionid" UNIQUE="false" FIELDS="criterionid"/>
       </INDEXES>
     </TABLE>
 

@@ -25,12 +25,41 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+
 /**
  * Post installation procedure
  *
  * @see upgrade_plugins_modules()
  */
 function xmldb_groupevaluation_install() {
+  global $DB, $CFG;
+  require_once($CFG->dirroot.'/mod/groupevaluation/defaultcriterions.php');
+
+  foreach ($languages as $language => $value) {
+    $code = $language.'_';
+
+    foreach ($defaultcriterions as $defaultcriterion) {
+      $criterionrecord = new stdClass();
+      $criterionrecord->name = $crtstring[$code.$defaultcriterion];
+      $criterionrecord->text = $crtstring[$code.$defaultcriterion.'_desc'];
+      $criterionrecord->saved = 1;
+      $criterionrecord->timecreated = time();
+      $criterionrecord->defaultcriterion = 1;
+      $criterionrecord->languagecode = $language;
+      $criterionid = $DB->insert_record('groupevaluation_criterions', $criterionrecord);
+
+      // Create tags for this criterion
+      for ($i = 1; $i <= 5; $i++) {
+        $tagrecord = new stdClass();
+        $tagrecord->criterionid = $criterionid;
+        $tagrecord->text = $crtstring[$code.$defaultcriterion.'_ans'.$i];
+        $tagrecord->value = $i * 20;
+        $tagrecord->timemodified = $criterionrecord->timecreated;
+
+        $resulttag = $DB->insert_record('groupevaluation_tags', $tagrecord);
+      }
+    }
+  }
 }
 
 /**

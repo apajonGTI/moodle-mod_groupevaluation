@@ -21,36 +21,117 @@
 * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
 */
 
-/*
- function addAllGroups(source) {
-   checkboxes = document.getElementsByName('addgroup');
-   for(var i=0, n=checkboxes.length;i<n;i++) {
-     checkboxes[i].checked = source.checked;
-   }
- }
+function setNewGrade(userid, text) {
 
- function removeAllGroups(source) {
-   checkboxes = document.getElementsByName('removegroup');
-   for(var i=0, n=checkboxes.length;i<n;i++) {
-     checkboxes[i].checked = source.checked;
-   }
- }*/
+  var grade = prompt(text);
 
- M.mod_groupevaluation = M.mod_groupevaluation || {};
+  if (isFinite(String(grade))) {
+    if (grade >= 0 && grade <= 100) {
+      var newgrade = document.createElement("input");
+      newgrade.setAttribute("type", "hidden");
+      newgrade.setAttribute("name", "newgrade");
+      newgrade.setAttribute("value", 1);
 
+      var input = document.createElement("input");
+      input.setAttribute("type", "hidden");
+      input.setAttribute("name", "editgrade[" + userid + "]");
+      input.setAttribute("value", grade);
+      //append to form
+      document.getElementById("groupevaluation_reportform").appendChild(newgrade);
+      document.getElementById("groupevaluation_reportform").appendChild(input);
+    }
+  }
+}
 
- M.mod_groupevaluation.init_sendmessage = function(Y) {
-     Y.on('click', function(e) {
-         checked = this.get('checked');
+function viewSubmit(id, allfields) {
+
+  if (allfields) {
+    var input = document.createElement("input");
+    input.setAttribute("type", "hidden");
+    input.setAttribute("name", "allfields");
+    input.setAttribute("value", 1);
+    //append to form element that you want .
+    document.getElementById(id).appendChild(input);
+  }
+
+  document.getElementById(id).submit();
+}
+
+M.mod_groupevaluation = M.mod_groupevaluation || {};
+
+M.mod_groupevaluation.init_attempt_form = function(Y) {
+   M.core_formchangechecker.init({formid: 'phpesp_response'});
+};
+
+M.mod_groupevaluation.init_check = function(Y) {
+   Y.on('click', function(e) {
+       checked = this.get('checked');
+       Y.all('input.removecheckbox').each(function() {
+           this.set('checked', checked);
+       });
+       if (document.getElementById('checknotadded').checked) {
+         document.getElementById('checknotadded').checked = false;
          Y.all('input.addcheckbox').each(function() {
-             this.set('checked', checked);
+             this.set('checked', false);
          });
-     }, '#addall');
+       }
+   }, '#checkadded');
 
-     Y.on('click', function(e) {
-         checked = this.get('checked');
+   Y.on('click', function(e) {
+       checked = this.get('checked');
+       Y.all('input.addcheckbox').each(function() {
+           this.set('checked', checked);
+       });
+       if (document.getElementById('checkadded').checked) {
+         document.getElementById('checkadded').checked = false;
          Y.all('input.removecheckbox').each(function() {
-             this.set('checked', checked);
+             this.set('checked', false);
          });
-     }, '#removeall');
- };
+       }
+   }, '#checknotadded');
+
+   Y.on('click', function(e) {
+       checked = this.get('checked');
+       Y.all('input.addcheckbox').each(function() {
+           this.set('checked', checked);
+       });
+       Y.all('input.removecheckbox').each(function() {
+           this.set('checked', checked);
+       });
+   }, '#selectall');
+};
+
+M.mod_groupevaluation.init_sendmessage = function(Y) {
+    Y.on('click', function(e) {
+        Y.all('input.usercheckbox').each(function() {
+            this.set('checked', 'checked');
+        });
+    }, '#checkall');
+
+    Y.on('click', function(e) {
+        Y.all('input.usercheckbox').each(function() {
+            this.set('checked', '');
+        });
+    }, '#checknone');
+
+    Y.on('click', function(e) {
+        Y.all('input.usercheckbox').each(function() {
+            if (this.get('alt') == 0) {
+                this.set('checked', 'checked');
+            } else {
+                this.set('checked', '');
+            }
+        });
+    }, '#checknotstarted');
+
+    Y.on('click', function(e) {
+        Y.all('input.usercheckbox').each(function() {
+            if (this.get('alt') == 1) {
+                this.set('checked', 'checked');
+            } else {
+                this.set('checked', '');
+            }
+        });
+    }, '#checkstarted');
+
+};

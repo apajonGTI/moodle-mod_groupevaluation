@@ -165,6 +165,10 @@ function groupevaluation_delete_instance($id) {
     }
 
     // Delete any dependent records here.
+    /*$DB->delete_records('groupevaluation', array('id' => $groupevaluation->id));
+
+    $DB->delete_records('groupevaluation_criterions', array('id' => $groupevaluation->id));
+    $DB->delete_records('groupevaluation_surveys', array('id' => $groupevaluation->id));*/
 
     $DB->delete_records('groupevaluation', array('id' => $groupevaluation->id));
 
@@ -329,7 +333,7 @@ function groupevaluation_scale_used_anywhere($scaleid) {
  * @param bool $reset reset grades in the gradebook
  * @return void
  */
-function groupevaluation_grade_item_update(stdClass $groupevaluation, $reset=false) {
+function groupevaluation_grade_item_update($groupevaluation, $grades=NULL) {
     global $CFG;
     require_once($CFG->libdir.'/gradelib.php');
 
@@ -348,12 +352,12 @@ function groupevaluation_grade_item_update(stdClass $groupevaluation, $reset=fal
         $item['gradetype'] = GRADE_TYPE_NONE;
     }
 
-    if ($reset) {
-        $item['reset'] = true;
+    if ($grades  === 'reset') {
+        $params['reset'] = true;
+        $grades = NULL;
     }
 
-    grade_update('mod/groupevaluation', $groupevaluation->course, 'mod', 'groupevaluation',
-            $groupevaluation->id, 0, null, $item);
+    return grade_update('mod/groupevaluation', $groupevaluation->course, 'mod', 'groupevaluation', $groupevaluation->id, 0, $grades, $item);
 }
 
 /**
@@ -376,16 +380,66 @@ function groupevaluation_grade_item_delete($groupevaluation) {
  * Needed by {@link grade_update_mod_grades()}.
  *
  * @param stdClass $groupevaluation instance object with extra cmidnumber and modname property
+ * @param int $userid specific user only, 0 means all users.
+ * @param bool $nullifnone If a single user is specified and $nullifnone is true a grade item with a null rawgrade will be inserted
  * @param int $userid update grade of specific user only, 0 means all participants
  */
-function groupevaluation_update_grades(stdClass $groupevaluation, $userid = 0) {
+
+function groupevaluation_update_grades($groupevaluation, $userid=0, $nullifnone=true) {
     global $CFG, $DB;
     require_once($CFG->libdir.'/gradelib.php');
-
-    // Populate array of grade objects indexed by userid.
+    /*// Populate array of grade objects indexed by userid.
     $grades = array();
+    grade_update('mod/groupevaluation', $groupevaluation->course, 'mod', 'groupevaluation', $groupevaluation->id, 0, $grades);*/
 
-    grade_update('mod/groupevaluation', $groupevaluation->course, 'mod', 'groupevaluation', $groupevaluation->id, 0, $grades);
+    /*if (!$groupevaluation->assessed) {
+        groupevaluation_grade_item_update($groupevaluation);
+
+    } else*/
+    if ($grades = groupevaluation_get_user_grades($groupevaluation, $userid)) {
+        groupevaluation_grade_item_update($groupevaluation, $grades);
+
+    } else if ($userid and $nullifnone) {
+        $grade = new stdClass();
+        $grade->userid   = $userid;
+        $grade->rawgrade = NULL;
+        groupevaluation_grade_item_update($groupevaluation, $grade);
+
+    } else {
+        groupevaluation_grade_item_update($groupevaluation);
+    }
+}
+
+/**
+ * Return grade for given user or all users.
+ *
+ * @param int $groupevaluationid id of groupevaluation
+ * @param int $userid optional user id, 0 means all users
+ * @return array array of grades, false if none. These are raw grades. They should
+ * be processed with groupevaluation_format_grade for display.
+ */
+function groupevaluation_get_user_grades($groupevaluation, $userid = 0) {
+    global $CFG, $DB;
+
+    $params = array($groupevaluation->id);
+    $usertest = '';
+    if ($userid) {
+        $params[] = $userid;
+        $usertest = 'AND users.id = ?';
+    }
+    return $DB->get_records_sql("
+            SELECT
+                users.id,
+                users.id AS userid,
+                grades.grade AS rawgrade,
+                grades.timemodified AS dategraded
+
+            FROM {user} users
+            JOIN {groupevaluation_grades} grades ON users.id = grades.userid
+
+            WHERE grades.groupevaluationid = ?
+            $usertest
+            GROUP BY users.id, grades.grade, grades.timemodified", $params);
 }
 
 /* File API */
@@ -519,20 +573,67 @@ function groupevaluation_get_completion_state($course, $cm, $userid, $type) {
  */
 function groupevaluation_create_surveys($groupevaluationid, $groupid) {
     global $DB;
+    $conditions = array('groupid' => $groupid, 'groupevaluationid' => $groupevaluationid);
+    $surveys = $DB->get_records('groupevaluation_surveys', $conditions);
+
+    if (!$surveys) {
+      $timecreated = time();
+      $members = $DB->get_records('groups_members', array('groupid' => $groupid));
+
+      foreach ($members as $author) {
+        foreach ($members as $groupuser) {
+          $surveyrecord = new stdClass();
+          $surveyrecord->authorid = $author->userid;
+          $surveyrecord->userid = $groupuser->userid;
+          $surveyrecord->groupid  = $groupid;
+          $surveyrecord->groupevaluationid = $groupevaluationid;
+          $surveyrecord->timecreated = $timecreated;
+
+          $resulttag = $DB->insert_record('groupevaluation_surveys', $surveyrecord);
+        }
+      }
+    }
+    return true;
+}
+
+/**
+ * que ase?
+ *
+ * @param int $groupevaluationid
+ * @param array $groups
+ * @return
+ */
+function groupevaluation_remove_surveys($groupevaluationid, $groupid) {
+    global $DB;
+
+    $DB->delete_records('groupevaluation_surveys', array('groupid' => $groupid, 'groupevaluationid' => $groupevaluationid));
+
+    return true;
+}
+
+/**
+ * que ase?
+ *
+ * @param int $groupevaluationid
+ * @param array $groups
+ * @return
+ */
+function groupevaluation_default_criterions($groupevaluationid) {
+    global $DB;
 
     $timecreated = time();
     $members = $DB->get_records('groups_members', array('groupid' => $groupid));
 
     foreach ($members as $author) {
       foreach ($members as $groupuser) {
-        $surveyrecord = new stdClass();
-        $surveyrecord->authorid = $author->userid;
-        $surveyrecord->userid = $groupuser->userid;
-        $surveyrecord->groupid  = $groupid;
-        $surveyrecord->groupevaluationid = $groupevaluationid;
-        $surveyrecord->timecreated = $timecreated;
+        $criterionrecord = new stdClass();
+        $criterionrecord->authorid = $author->userid;
+        $criterionrecord->userid = $groupuser->userid;
+        $criterionrecord->groupid  = $groupid;
+        $criterionrecord->groupevaluationid = $groupevaluationid;
+        $criterionrecord->timecreated = $timecreated;
 
-        $resulttag = $DB->insert_record('groupevaluation_surveys', $surveyrecord);
+        $resulttag = $DB->insert_record('groupevaluation_surveys', $criterionrecord);
       }
     }
     return true;

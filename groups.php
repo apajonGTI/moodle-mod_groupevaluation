@@ -27,11 +27,12 @@ require_once($CFG->libdir.'/tablelib.php');
 // Get the params.
 $id           = required_param('id', PARAM_INT);
 $format       = optional_param('format', FORMAT_MOODLE, PARAM_INT);
+$addsubmit    = optional_param('addsubmit', false, PARAM_ALPHA);
+$removesubmit = optional_param('removesubmit', false, PARAM_ALPHA);
 $addgroup     = optional_param_array('addgroup', false, PARAM_INT);
 $removegroup  = optional_param_array('removegroup', false, PARAM_INT);
-$action       = optional_param('action', '', PARAM_ALPHA);
 $perpage      = optional_param('perpage', groupevaluation_DEFAULT_PAGE_COUNT, PARAM_INT);  // How many per page.
-
+$showall      = optional_param('showall', false, PARAM_INT);  // Should we show all users?
 if (!isset($SESSION->groupevaluation)) {
     $SESSION->groupevaluation = new stdClass();
 }
@@ -75,21 +76,18 @@ if (($formdata = data_submitted()) AND !confirm_sesskey()) {
 
 require_capability('mod/groupevaluation:editsurvey', $context);
 
-$groups = $DB->get_records("groups", array("courseid" => $cm->course));
-$countgroups = count($groups);
-
-
-if ($action == 'update' && (is_array($addgroup) && is_array($removegroup))) {
+$good = false;
+if (($addsubmit && is_array($addgroup)) || ($removesubmit && is_array($removegroup))) {
     $good = true;
 
-    if (is_array($addgroup)) {
+    if ($addsubmit && is_array($addgroup)) {
         foreach ($addgroup as $groupid) {
             if(!groupevaluation_create_surveys($groupevaluation->id, $groupid)) {
               $good = false;
             }
         }
     }
-    if (is_array($removegroup)) {
+    if ($removesubmit && is_array($removegroup)) {
         foreach ($removegroup as $groupid) {
             if(!groupevaluation_remove_surveys($groupevaluation->id, $groupid)) {
               $good = false;
@@ -97,16 +95,28 @@ if ($action == 'update' && (is_array($addgroup) && is_array($removegroup))) {
         }
     }
 
+    // Updated groups message
     if ($good) {
-        $msg = $OUTPUT->heading(get_string('updatedgroups'. 'groupevaluation'));
+        echo $OUTPUT->container(get_string('updatedgroups', 'groupevaluation'), 'important', 'notice');
+    } else {
+        echo $OUTPUT->notification(get_string('updatedgroupsfailed', 'groupevaluation'));
+    }
+
+    /*if ($good) {
+        //$msg = $OUTPUT->heading(get_string('updatedgroups', 'groupevaluation'));
     } else {
         $msg = $OUTPUT->heading(get_string('updatedgroupsfailed', 'groupevaluation'));
     }
-
     $url = new moodle_url('/mod/groupevaluation/view.php', array('id' => $cm->id));
     redirect($url, $msg, 4);
-    exit;
+    exit;*/
 }
+// GET GROUPS //
+$groups = $DB->get_records("groups", array("courseid" => $cm->course));
+$countgroups = count($groups);
+$query = 'SELECT DISTINCT groupid FROM mdl_groupevaluation_surveys WHERE groupevaluationid = ?';
+$groupsadded = $DB->get_records_sql($query, array($groupevaluation->id));
+$countgroupsadded = count($groupsadded);
 
 // Get the responses of given user.
 // Print the page header.
@@ -115,6 +125,7 @@ $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_title(format_string($groupevaluation->name));
 
 echo $OUTPUT->header();
+echo $OUTPUT->heading(format_string($groupevaluation->name));
 
 require('tabs.php');
 
@@ -137,11 +148,11 @@ $tableheaders[] = get_string('groupname', 'groupevaluation');
 $tablecolumns[] = 'members';
 $tableheaders[] = get_string('members', 'groupevaluation');
 
-$tablecolumns[] = 'addgroupcolm';
-$tableheaders[] = get_string('addgroup', 'groupevaluation').'  <input type="checkbox" id="addall"/><br/>';
+$tablecolumns[] = 'status';
+$tableheaders[] = get_string('status');
 
-$tablecolumns[] = 'removegroupcolm';
-$tableheaders[] = get_string('removegroup', 'groupevaluation').'  <input type="checkbox" id="removeall"/><br/>';
+$tablecolumns[] = 'select';
+$tableheaders[] = '<input type="checkbox" id="selectall"/>'.get_string('select');
 
 $table = new flexible_table('groupevaluation-groups-'.$course->id);
 
@@ -161,8 +172,8 @@ $table->set_control_variables(array(
             ));
 
 $table->no_sorting('members');
-$table->no_sorting('addgroupcolm');
-$table->no_sorting('removegroupcolm');
+$table->no_sorting('status');
+$table->no_sorting('select');
 
 $table->setup();
 
@@ -173,12 +184,17 @@ if ($table->get_sql_sort()) {
 }
 
 $table->initialbars(false);
-$table->pagesize($perpage, $countgroups);
-$startpage = $table->get_page_start();
-$pagecount = $table->get_page_size();
-
+if ($showall) {
+    $startpage = false;
+    $pagecount = false;
+} else {
+    $table->pagesize($perpage, $countgroups);
+    $startpage = $table->get_page_start();
+    $pagecount = $table->get_page_size();
+}
 
 // Print the list of groups.
+
 
 echo '<div class="clearer"></div>';
 echo $OUTPUT->box_start('left-align');
@@ -186,9 +202,15 @@ echo $OUTPUT->box_start('left-align');
 if (!$groups) {
     echo $OUTPUT->notification(get_string('noexistinggroups', 'groupevaluation'));
 } else {
-    echo print_string('groupscreated', 'groupevaluation');
-    echo ' ('.$countgroups.')'; //SEGUIR AQUI
+    echo print_string('groupscreated', 'groupevaluation').' ('.$countgroups.')<br/>';
+    echo print_string('groupsadded', 'groupevaluation').' ('.$countgroupsadded.')';
     echo '<form class="mform" action="groups.php" method="post" id="groupevaluation_updateform">';
+
+
+    // For paging I use array_slice().
+    if ($startpage !== false AND $pagecount !== false) {
+        $groups = array_slice($groups, $startpage, $pagecount);
+    }
 
     foreach ($groups as $group) {
 
@@ -216,36 +238,47 @@ if (!$groups) {
         // we use the alt attribute of the checkboxes to store the started/not started value!
         $checkboxaltvalue = '';
 
-        if ($DB->get_record('groupevaluation_surveys', array('groupevaluationid' => $groupevaluation->id,'groupid' => $group->id))) {
-          // Add group column
+        if ($DB->get_records('groupevaluation_surveys', array('groupevaluationid' => $groupevaluation->id,'groupid' => $group->id))) {
+          // Status column
           $data[] = get_string('added', 'groupevaluation');
           // Remove group column
-          $data[] = '<input type="checkbox" class="removecheckbox" name="removegroup[]" value="'.$group->id.'" alt="0"/>';
+          $data[] = '<input type="checkbox" class="removecheckbox" name="removegroup[]" value="'.$group->id.'"/>';
         } else {
+          // Status column
+          $data[] = '<span style="color: grey;">'.get_string('notadded', 'groupevaluation').'</span>';
           // Add group column
-          $data[] = '<input type="checkbox" class="addcheckbox" name="addgroup[]" value="'.$group->id.'" alt="0"/>';
-          // Remove group column
-          $data[] = get_string('notadded', 'groupevaluation');
+          $data[] = '<input type="checkbox" class="addcheckbox" name="addgroup[]" value="'.$group->id.'"/>';
         }
 
         $table->add_data($data);
     }
 
+    // Select buttons
+    echo $OUTPUT->box_start('mdl-align'); // Selection buttons container.
+    echo '<div style="float:right; text-align:left; margin-right: 21px;">';
+    /*echo '<input type="button" id="checkadded" value="'.get_string('checkadded', 'groupevaluation').'" />';
+    echo '<input type="button" id="checknotadded" value="'.get_string('checknotadded', 'groupevaluation').'" />';*/
+    echo '<input type="checkbox" id="checkadded"/>'.get_string('checkadded', 'groupevaluation').'<br/>';
+    echo '<input type="checkbox" id="checknotadded"/>'.get_string('checknotadded', 'groupevaluation');
+
+    echo '</div>';
+    echo $OUTPUT->box_end();
+
     $table->print_html();
 
-    if ($action == 'update' && (!is_array($addgroup) && !is_array($removegroup))) {
+    if (($addsubmit || $removesubmit) && (!is_array($addgroup) && !is_array($removegroup))) {
       echo $OUTPUT->notification(get_string('nogroupselected', 'groupevaluation'));
     }
 
-    // Update button.
+    // Submit buttons
     echo $OUTPUT->box_start('mdl-align');
     echo '<div class="buttons">';
-    echo '<input type="submit" name="update" value="'.get_string('update', 'groupevaluation').'" />';
+    echo '<input type="submit" name="addsubmit" value="'.get_string('addgroups', 'groupevaluation').'" />';
+    echo '<input type="submit" name="removesubmit" value="'.get_string('removegroups', 'groupevaluation').'" />';
     echo '</div>';
     echo $OUTPUT->box_end();
 
     echo '<input type="hidden" name="sesskey" value="'.sesskey().'" />';
-    echo '<input type="hidden" name="action" value="update" />';
     echo '<input type="hidden" name="id" value="'.$cm->id.'" />';
 
     echo '</form>';
@@ -253,7 +286,7 @@ if (!$groups) {
 
 // Include the needed js.
 $module = array('name' => 'mod_groupevaluation', 'fullpath' => '/mod/groupevaluation/module.js');
-$PAGE->requires->js_init_call('M.mod_groupevaluation.init_sendmessage', null, false, $module);
+$PAGE->requires->js_init_call('M.mod_groupevaluation.init_check', null, false, $module);
 //$PAGE->requires->js(new moodle_url($CFG->wwwroot . '/mod/groupevaluation/module.js'));
 
 echo $OUTPUT->box_end();

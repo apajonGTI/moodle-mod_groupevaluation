@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -16,507 +15,473 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * This file is responsible for producing the survey reports
- *
- * @package   mod_groupevaluation
- * @copyright Jose Vilas
+ * @package    mod_groupevaluation
+ * @copyright  Jose Vilas
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-require_once(dirname(dirname(dirname(__FILE__))).'/config.php');
-require_once(dirname(__FILE__).'/lib.php');
 
-// Check that all the parameters have been provided.
+require_once("../../config.php");
+require_once($CFG->dirroot.'/mod/groupevaluation/locallib.php');
+require_once($CFG->libdir.'/tablelib.php');
+require_once($CFG->libdir.'/gradelib.php');
 
-    $id      = optional_param('id', 0, PARAM_INT);        // Course_module ID
-    $action  = optional_param('action', '', PARAM_ALPHA); // What to look at
-    $qid     = optional_param('qid', 0, PARAM_RAW);       // Question IDs comma-separated list
-    $student = optional_param('student', 0, PARAM_INT);   // Student ID
-    $notes   = optional_param('notes', '', PARAM_RAW);    // Save teachers notes
+// Get the params.
+$id           = required_param('id', PARAM_INT);
+$perpage      = optional_param('perpage', groupevaluation_DEFAULT_PAGE_COUNT, PARAM_INT);  // How many per page.
+$showall      = optional_param('showall', false, PARAM_INT);  // Should we show all users?
+$viewmode     = optional_param('viewmode', 'participants', PARAM_ALPHA); //
+$orderby      = optional_param('orderby', 'firstname', PARAM_ALPHA); //
+$groupid      = optional_param('groupid', 0, PARAM_INT);  //
+$newgrade     = optional_param('newgrade', 0, PARAM_INT);  //
 
-    $qids = explode(',', $qid);
-    $qids = clean_param_array($qids, PARAM_INT);
-    $qid = implode (',', $qids);
-    $cm         = get_coursemodule_from_id('groupevaluation', $id, 0, false, MUST_EXIST);
+if (!isset($SESSION->groupevaluation)) {
+    $SESSION->groupevaluation = new stdClass();
+}
 
-    if (! $cm = get_coursemodule_from_id('groupevaluation', $id, 0, false, MUST_EXIST)) {
+$SESSION->groupevaluation->current_tab = 'report';
+
+// Get the objects.
+
+if ($id) {
+    if (! $cm = get_coursemodule_from_id('groupevaluation', $id)) {
         print_error('invalidcoursemodule');
     }
 
-    if (! $course = $DB->get_record('course', array('id' => $cm->course), '*', MUST_EXIST)) {
+    if (! $course = $DB->get_record("course", array("id" => $cm->course))) {
         print_error('coursemisconf');
     }
 
-    $url = new moodle_url('/mod/groupevaluation/report.php', array('id'=>$id));
-    if ($action !== '') {
-        $url->param('action', $action);
+    if (! $groupevaluation = $DB->get_record("groupevaluation", array("id" => $cm->instance))) {
+        print_error('invalidcoursemodule');
     }
-    if ($qid !== 0) {
-        $url->param('qid', $qid);
-    }
-    if ($student !== 0) {
-        $url->param('student', $student);
-    }
-    if ($notes !== '') {
-        $url->param('notes', $notes);
-    }
-    $PAGE->set_url($url);
+}
 
-    //TODO por que false || true
-    require_login($course, false, $cm);
+$url = new moodle_url('/mod/groupevaluation/report.php', array('id' => $cm->id));
 
-    $context = context_module::instance($cm->id);
+$PAGE->set_url($url);
 
-    require_capability('mod/groupevaluation:readresponses', $context);
+if (!$context = context_module::instance($cm->id)) {
+        print_error('badcontext');
+}
 
-    if (! $groupevaluation = $DB->get_record('groupevaluation', array('id' => $cm->instance), '*', MUST_EXIST)) {
-        print_error('invalidgroupevaluationid', 'groupevaluation');
-    }
+// We need the coursecontext to allow updateing of mass mails.
+if (!$coursecontext = context_course::instance($course->id)) {
+        print_error('badcontext');
+}
 
-    if (! $template = $DB->get_record("survey", array("id"=>$survey->template))) {
-        print_error('invalidtemplatetid', 'groupevaluation');
-    }
+require_login($course, false, $cm);
 
-    $showscales = ($template->name != 'ciqname');
+if (($formdata = data_submitted()) AND !confirm_sesskey()) {
+    print_error('invalidsesskey');
+}
 
+require_capability('mod/groupevaluation:readresponses', $context);
 
-    $strreport = get_string("report", "survey");
-    $strsurvey = get_string("modulename", "survey");
-    $strsurveys = get_string("modulenameplural", "survey");
-    $strsummary = get_string("summary", "survey");
-    $strscales = get_string("scales", "survey");
-    $strquestion = get_string("question", "survey");
-    $strquestions = get_string("questions", "survey");
-    $strdownload = get_string("download", "survey");
-    $strallscales = get_string("allscales", "survey");
-    $strallquestions = get_string("allquestions", "survey");
-    $strselectedquestions = get_string("selectedquestions", "survey");
-    $strseemoredetail = get_string("seemoredetail", "survey");
-    $strnotes = get_string("notes", "survey");
+// UPDATE USER GRADE //
+if ($newgrade) {
+  $editgrade = $_POST['editgrade'];
 
-    switch ($action) {
-        case 'download':
-            $PAGE->navbar->add(get_string('downloadresults', 'survey'));
-            break;
-        case 'summary':
-        case 'scales':
-        case 'questions':
-            $PAGE->navbar->add($strreport);
-            $PAGE->navbar->add(${'str'.$action});
-            break;
-        case 'students':
-            $PAGE->navbar->add($strreport);
-            $PAGE->navbar->add(get_string('participants'));
-            break;
-        case '':
-            $PAGE->navbar->add($strreport);
-            $PAGE->navbar->add($strsummary);
-            break;
-        default:
-            $PAGE->navbar->add($strreport);
-            break;
-    }
+  foreach ($editgrade as $userid => $grade) {
+    $conditions = array('userid' => $userid, 'groupevaluationid' => $groupevaluation->id);
 
-    $PAGE->set_title("$course->shortname: ".format_string($survey->name));
-    $PAGE->set_heading($course->fullname);
-    echo $OUTPUT->header();
-    echo $OUTPUT->heading($survey->name);
-
-/// Check to see if groups are being used in this survey
-    if ($groupmode = groups_get_activity_groupmode($cm)) {   // Groups are being used
-        $menuaction = $action == "student" ? "students" : $action;
-        $currentgroup = groups_get_activity_group($cm, true);
-        groups_print_activity_menu($cm, $CFG->wwwroot . "/mod/survey/report.php?id=$cm->id&amp;action=$menuaction&amp;qid=$qid");
+    if ($usergrade = $DB->get_record('groupevaluation_grades', $conditions)) {
+      $usergrade->grade = $grade;
+      $usergrade->timemodified = time();
+      $DB->update_record('groupevaluation_grades', $usergrade);
     } else {
-        $currentgroup = 0;
+      $graderecord = new stdClass();
+      $graderecord->groupevaluationid = $groupevaluation->id;
+      $graderecord->userid = $userid;
+      $graderecord->grade = $grade;
+      $graderecord->timemodified = time();
+      $DB->insert_record('groupevaluation_grades', $graderecord);
+    }
+    // CALL API FUNCTION //
+    groupevaluation_update_grades($groupevaluation, $userid, true);
+  }
+}
+
+// GET PARTICIPANTS //
+$where = 'groupevaluationid = '.$groupevaluation->id;
+if ($viewmode == 'crossevaluations') {
+  $where .= ' AND groupid = '.$groupid;
+}
+$select = 'SELECT DISTINCT userid FROM mdl_groupevaluation_surveys WHERE '.$where;
+$query = 'SELECT * FROM mdl_user WHERE id IN ('.$select.') ORDER BY '.$orderby;
+$participants = $DB->get_records_sql($query);
+$countparticipants = count($participants);
+
+// GET GRADES //
+$grading_info = grade_get_grades($groupevaluation->course, 'mod', 'groupevaluation', $groupevaluation->id, array_keys($participants));
+$grades = $grading_info->items[0]->grades;
+
+// GET GROUPS //
+$select = 'SELECT DISTINCT groupid FROM mdl_groupevaluation_surveys WHERE groupevaluationid = '.$groupevaluation->id;
+$query = 'SELECT * FROM mdl_groups WHERE id IN ('.$select.') ORDER BY name';
+$surveygroups = $DB->get_records_sql($query);
+
+// Get the responses of given user.
+// Print the page header.
+$PAGE->navbar->add(get_string('report', 'groupevaluation'));
+$PAGE->set_heading(format_string($course->fullname));
+$PAGE->set_title(format_string($groupevaluation->name));
+
+echo $OUTPUT->header();
+echo $OUTPUT->heading(format_string($groupevaluation->name));
+
+require('tabs.php');
+
+$usedgroupid = false;
+$sort = '';
+$startpage = false;
+$pagecount = false;
+$straverageweighted = get_string('averageweighted', 'groupevaluation');
+
+// Print the main part of the page.
+// Print the users with no responses
+
+// Preparing the table for output.
+$baseurl = new moodle_url('/mod/groupevaluation/report.php');
+$baseurl->params(array('id' => $cm->id));
+
+// TABLE COLUMNS //
+if ($viewmode == 'participants') {
+
+  $tablecolumns = array('userpic', 'fullname');
+  $tableheaders = array(get_string('userpic'), get_string('fullnameuser'));
+
+  $tablecolumns[] = 'average';
+  $tableheaders[] = get_string('assessmentofgroupmates', 'groupevaluation').'<br/><span style="font-size: smaller;">('.$straverageweighted.')</span>';
+
+  $tablecolumns[] = 'selfevaluation';
+  $tableheaders[] = get_string('selfevaluation', 'groupevaluation').'<br/><span style="font-size: smaller;">('.$straverageweighted.')</span>';
+
+  $tablecolumns[] = 'deviation';
+  $tableheaders[] = get_string('deviation', 'groupevaluation').'<br/><span style="font-size: smaller;">('.$straverageweighted.')</span>';
+
+  $tablecolumns[] = 'grade';
+  $tableheaders[] = get_string('grade', 'groupevaluation');
+
+  $tablecolumns[] = 'evaluatedby';
+  $tableheaders[] = get_string('evaluatedby', 'groupevaluation');
+
+} elseif ($viewmode == 'crossevaluations') {
+  $showall = true;
+  $tablecolumns[] = 'participant';
+  $tableheaders[] = get_string('reporttableheading', 'groupevaluation');;
+
+  $userscolumns = 0;
+  foreach ($participants as $parcitipant) {
+    // Username and link to the profilepage.
+    $profileurl = $CFG->wwwroot.'/user/view.php?id='.$parcitipant->id.'&amp;course='.$course->id;
+    $profilelink = '<strong><a href="'.$profileurl.'">'.fullname($parcitipant).'</a></strong>';
+    $userscolumns++;
+    $tablecolumns[] = 'user_'.$userscolumns;
+    $tableheaders[] = $profilelink;
+  }
+}
+
+$tablecolumns[] = 'view';
+$tableheaders[] = '';
+
+$tableid = 'groupevaluation-groups-'.$course->id;
+$table = new flexible_table($tableid);
+
+$table->define_columns($tablecolumns);
+$table->define_headers($tableheaders);
+$table->define_baseurl($baseurl);
+
+$table->sortable(true, 'lastname', SORT_DESC);
+$table->set_attribute('cellspacing', '0');
+$table->set_attribute('id', 'showentrytable');
+$table->set_attribute('class', 'flexible generaltable generalbox');
+$table->set_control_variables(array(
+            TABLE_VAR_SORT    => 'ssort',
+            TABLE_VAR_IFIRST  => 'sifirst',
+            TABLE_VAR_ILAST   => 'silast',
+            TABLE_VAR_PAGE    => 'spage'
+            ));
+
+// No sorting
+$table->no_sorting('view');
+if ($viewmode == 'participants') {
+  $table->no_sorting('evaluatedby');
+} elseif ($viewmode == 'crossevaluations') {
+  $table->no_sorting('participant');
+  for ($i=1; $i <= $userscolumns; $i++) {
+    $table->no_sorting('user_'.$i);
+  }
+}
+
+$table->setup();
+
+if ($table->get_sql_sort()) {
+    $sort = $table->get_sql_sort();
+} else {
+    $sort = '';
+}
+
+$table->initialbars(false);
+
+if ($showall) {
+    $startpage = false;
+    $pagecount = false;
+} else {
+    $table->pagesize($perpage, $countparticipants);
+    $startpage = $table->get_page_start();
+    $pagecount = $table->get_page_size();
+}
+
+// Print the list of groups.
+echo '<div class="clearer"></div>';
+echo $OUTPUT->box_start('left-align');
+
+echo '<form class="mform" action="report.php" method="post" id="groupevaluation_reportform">';
+
+echo $OUTPUT->container_start('view_options', 'view_options');
+$options = array( 'participants' => get_string('participants','groupevaluation'),
+                  'crossevaluations' => get_string('crossevaluations','groupevaluation'));
+echo html_writer::select($options, 'viewmode', $viewmode, false, array('id' => 'viewmode', 'onchange' => 'viewSubmit("groupevaluation_reportform", false)'));
+echo $OUTPUT->container_end();
+
+if ($viewmode == 'crossevaluations') {
+  echo $OUTPUT->container_start('select_groups', 'select_groups');
+
+  $options = array(0 => '--- '.get_string('group','groupevaluation').' ---');
+  foreach ($surveygroups as $group) {
+    $options[$group->id] = $group->name;
+  }
+  echo html_writer::select($options, 'groupid', $groupid, false, array('id' => 'groupid', 'onchange' => 'viewSubmit("groupevaluation_reportform", false)'));
+  echo $OUTPUT->container_end();
+}
+
+$colorscale = array ();
+
+if (!$participants) {
+  if (($viewmode == 'crossevaluations') && (!$groupid)) {
+    echo '<div class="notifyproblem">'.get_string('selectgroup', 'groupevaluation').'</div>';
+  } else {
+    echo $OUTPUT->notification(get_string('noexistingparticipants', 'enrol'));
+  }
+} else {
+    echo print_string('groupevaluationparticipants', 'groupevaluation').' ('.$countparticipants.')';
+
+    // For paging I use array_slice().
+    if ($startpage !== false AND $pagecount !== false) {
+        $participants = array_slice($participants, $startpage, $pagecount);
     }
 
-    $params = array(
-        'objectid' => $survey->id,
-        'context' => $context,
-        'courseid' => $course->id,
-        'relateduserid' => $student,
-        'other' => array('action' => $action, 'groupid' => $currentgroup)
-    );
-    $event = \mod_survey\event\report_viewed::create($params);
-    $event->trigger();
+    $countrow = 0;
+    foreach ($participants as $user) {
+      $userid = $user->id;
+      $countcolumn = 0;
+      // Userpicture and link to the profilepage.
+      $profileurl = $CFG->wwwroot.'/user/view.php?id='.$userid.'&amp;course='.$course->id;
+      $profilelink = '<strong><a href="'.$profileurl.'">'.fullname($user).'</a></strong>';
+      if ($viewmode == 'participants') {
+        $data = array ($OUTPUT->user_picture($user, array('courseid' => $course->id)), $profilelink);
+        $countcolumn++;
+      } elseif ($viewmode == 'crossevaluations') {
+        $data = array ($profilelink);
+      }
+      $countcolumn++;
 
-    if ($currentgroup) {
-        $users = get_users_by_capability($context, 'mod/survey:participate', '', '', '', '', $currentgroup, null, false);
-    } else if (!empty($cm->groupingid)) {
-        $groups = groups_get_all_groups($courseid, 0, $cm->groupingid);
-        $groups = array_keys($groups);
-        $users = get_users_by_capability($context, 'mod/survey:participate', '', '', '', '', $groups, null, false);
-    } else {
-        $users = get_users_by_capability($context, 'mod/survey:participate', '', '', '', '', '', null, false);
-        $group = false;
+      $sumaverage = 0;
+      $countaverage = 0;
+      $selfevaluation = '-';
+      foreach ($participants as $author) {
+        $where = 'userid = '.$userid.' AND authorid = '.$author->id.' AND groupevaluationid = '.$groupevaluation->id;
+        $query = 'SELECT * FROM mdl_groupevaluation_assessments WHERE surveyid IN ('.
+                  'SELECT DISTINCT id FROM mdl_groupevaluation_surveys WHERE '.$where.')';
+        $answers = $DB->get_records_sql($query);
+
+        // Calculate the weight taking into account the criterions answered, maintaining the proportions.
+        // Normalize weight
+        $baseweigh = 0;
+        $query2 = 'SELECT * FROM mdl_groupevaluation_criterions WHERE id IN ('.
+                  'SELECT DISTINCT criterionid FROM mdl_groupevaluation_assessments WHERE surveyid IN ('.
+                  'SELECT DISTINCT id FROM mdl_groupevaluation_surveys WHERE '.$where.'))';
+        $criterionsweights = $DB->get_records_sql($query2);
+        foreach ($criterionsweights as $criterionsweight) {
+          $baseweigh = $baseweigh + $criterionsweight->weight;
+        }
+
+        $weightedsumauthor = 0;
+        foreach ($answers as $answer) { // answer per criterion
+          // Normalize weight
+          $criterionweight = $DB->get_record('groupevaluation_criterions', array('id' => $answer->criterionid));
+          if (!$baseweigh) {
+            $weightedsumauthor = '-';
+          } else {
+            $normalizedweight = ($criterionweight->weight) / $baseweigh;
+            // Weighted sum
+            $weightedsumauthor = $weightedsumauthor + (($answer->assessment) * $normalizedweight);
+          }
+        }
+        if (!$answers) {
+          $weightedsumauthor = '-';
+        }
+
+        if ($viewmode == 'crossevaluations') {
+          // Color escale array.
+          $cell = new stdClass();
+          $cell->id = $tableid.'_r'.$countrow.'_c'.$countcolumn;
+          $cell->value = $weightedsumauthor;
+          $colorscale[] = $cell;
+
+          if ($weightedsumauthor != '-') {
+            $data[] = round($weightedsumauthor, 2).'%';
+          } else {
+            $data[] = $weightedsumauthor;
+          }
+          $countcolumn++;
+        }
+
+        if ($userid != $author->id) {
+          if ($weightedsumauthor != '-') {
+            $sumaverage = $sumaverage + $weightedsumauthor;
+            $countaverage++;
+          }
+        } else {
+          $selfevaluation = $weightedsumauthor;
+        }
+      }
+
+      if ($viewmode == 'participants') {
+        if ($countaverage > 0) {
+          $average = round(($sumaverage / $countaverage), 2).'%';
+        } else {
+          $average = '-';
+        }
+
+        if ($selfevaluation != '-') {
+          $selfevaluation = round($selfevaluation, 2).'%';
+        }
+
+        if ($countaverage > 0 && ($selfevaluation != '-')) {
+          $deviation = round(($average - $selfevaluation), 2).'%';
+        } else {
+          $deviation = '-';
+        }
+
+        // GET GRADE //
+        $grade = '-';
+        if ($grades[$userid]->grade) {
+          $grade = round($grades[$userid]->grade, 2).'%';
+        }
+
+        // Average of groupmates //
+        $data[] = $average;
+        // Average selfevaluation //
+        $data[] = $selfevaluation;
+        // Average deviation //
+        $data[] = $deviation;
+
+        // Grade //
+        $streditgrade = get_string('edit');
+        $strprompt = get_string('enternewgrade', 'groupevaluation');
+        $attributes = 'value="'.$userid.'" name="editgradebutton['.$userid.']"  onclick=\'setNewGrade('.$userid.', "'.$strprompt.'");\'';
+        $extra = 'title="'.$streditgrade.'" src="'.$OUTPUT->pix_url('t/editstring').'" type="image"';
+        $imgeditgrade = '<input id="id_editgradebutton_'.$userid.'" '.$attributes.' '.$extra.'/>';
+
+        $data[] = '<strong>'.$grade.'</strong> '.$imgeditgrade;
+        $countcolumn = $countcolumn + 4;
+
+        // evaluatedby
+        $evaluatedby = '';
+        $separator = '';
+        $groupmembers = array();
+
+        // In case a user belongs to several groups
+        $query = 'SELECT * FROM mdl_groups WHERE id IN (SELECT DISTINCT groupid FROM mdl_groups_members WHERE userid=?) '.
+                'AND id IN (SELECT DISTINCT groupid FROM mdl_groupevaluation_surveys WHERE groupevaluationid=?)';
+        $groups = $DB->get_records_sql($query, array($userid, $groupevaluation->id));
+
+        foreach ($groups as $group) {
+          if (count($groups)>1) {
+            $evaluatedby = $evaluatedby.$separator.$group->name.': ';
+            $separator = '';
+          }
+
+          $groupmembers = $DB->get_records("groups_members", array('groupid' => $group->id));
+          foreach ($groupmembers as $groupmember) {
+            $user = $DB->get_record('user', array('id' => $groupmember->userid));
+
+            $conditions = 'userid = '.$userid.' AND groupevaluationid = '.$groupevaluation->id.' AND authorid = '.$user->id.' AND groupid = '.$group->id;
+            $survey = $DB->get_record_select('groupevaluation_surveys', $conditions);
+            $style = 'style="color: red;"';
+            if ($survey) {
+              if ($survey->status == groupevaluation_DONE) {
+                $style = '';
+              }
+            }
+            $profileurl = $CFG->wwwroot.'/user/view.php?id='.$user->id.'&amp;course='.$course->id;
+            $profilelink = '<a href="'.$profileurl.'" '.$style.'>'.fullname($user).'</a>';
+
+            $evaluatedby = $evaluatedby.$separator.$profilelink;
+            $separator = ', ';
+          }
+          $separator = '<br/>';
+        }
+        $data[] = $evaluatedby;
+        $countcolumn++;
+      }
+
+      // Column view //
+      $strview = get_string('view', 'groupevaluation');
+      $href = $CFG->wwwroot.htmlspecialchars('/mod/groupevaluation/results.php?id='.$cm->id.'&userid='.$user->id.'&allfields=1');
+      $data[] = '<a href="'.$href.'" class="btn btn-default btn-lg"'.'role="button" title="'.$strview.'">'.$strview.'</a>';
+      $countcolumn++;
+      $table->add_data($data);
+      $countrow++;
     }
 
-    $groupingid = $cm->groupingid;
+    $table->print_html();
+    $allurl = new moodle_url($baseurl);
 
-    echo $OUTPUT->box_start("generalbox boxaligncenter");
-    if ($showscales) {
-        echo "<a href=\"report.php?action=summary&amp;id=$id\">$strsummary</a>";
-        echo "&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"report.php?action=scales&amp;id=$id\">$strscales</a>";
-        echo "&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"report.php?action=questions&amp;id=$id\">$strquestions</a>";
-        echo "&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"report.php?action=students&amp;id=$id\">".get_string('participants')."</a>";
-        if (has_capability('mod/survey:download', $context)) {
-            echo "&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"report.php?action=download&amp;id=$id\">$strdownload</a>";
-        }
-        if (empty($action)) {
-            $action = "summary";
-        }
-    } else {
-        echo "<a href=\"report.php?action=questions&amp;id=$id\">$strquestions</a>";
-        echo "&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"report.php?action=students&amp;id=$id\">".get_string('participants')."</a>";
-        if (has_capability('mod/survey:download', $context)) {
-            echo "&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"report.php?action=download&amp;id=$id\">$strdownload</a>";
-        }
-        if (empty($action)) {
-            $action = "questions";
-        }
+    if ($showall && ($viewmode == 'participants')) {
+        $allurl->param('showall', 0);
+        echo $OUTPUT->container(html_writer::link($allurl, get_string('showperpage', '', groupevaluation_DEFAULT_PAGE_COUNT)),
+                                    array(), 'showall');
+
+    } else if ($countparticipants > 0 && $perpage < $countparticipants) {
+        $allurl->param('showall', 1);
+        echo $OUTPUT->container(html_writer::link($allurl,
+                        get_string('showall', '', $countparticipants)), array(), 'showall');
     }
-    echo $OUTPUT->box_end();
-
-    echo $OUTPUT->spacer(array('height'=>30, 'width'=>30, 'br'=>true)); // should be done with CSS instead
-
-
-/// Print the menu across the top
-
-    $virtualscales = false;
-
-    switch ($action) {
-
-      case "summary":
-        echo $OUTPUT->heading($strsummary, 3);
-
-        if (survey_count_responses($survey->id, $currentgroup, $groupingid)) {
-            echo "<div class='reportsummary'><a href=\"report.php?action=scales&amp;id=$id\">";
-            survey_print_graph("id=$id&amp;group=$currentgroup&amp;type=overall.png");
-            echo "</a></div>";
-        } else {
-            echo $OUTPUT->notification(get_string("nobodyyet","survey"));
-        }
-        break;
-
-      case "scales":
-        echo $OUTPUT->heading($strscales, 3);
-
-        if (! $results = survey_get_responses($survey->id, $currentgroup, $groupingid) ) {
-            echo $OUTPUT->notification(get_string("nobodyyet","survey"));
-
-        } else {
-
-            $questions = $DB->get_records_list("survey_questions", "id", explode(',', $survey->questions));
-            $questionorder = explode(",", $survey->questions);
-
-            foreach ($questionorder as $key => $val) {
-                $question = $questions[$val];
-                if ($question->type < 0) {  // We have some virtual scales.  Just show them.
-                    $virtualscales = true;
-                    break;
-                }
-            }
-
-            foreach ($questionorder as $key => $val) {
-                $question = $questions[$val];
-                if ($question->multi) {
-                    if (!empty($virtualscales) && $question->type > 0) {  // Don't show non-virtual scales if virtual
-                        continue;
-                    }
-                    echo "<p class=\"centerpara\"><a title=\"$strseemoredetail\" href=\"report.php?action=questions&amp;id=$id&amp;qid=$question->multi\">";
-                    survey_print_graph("id=$id&amp;qid=$question->id&amp;group=$currentgroup&amp;type=multiquestion.png");
-                    echo "</a></p><br />";
-                }
-            }
-        }
-
-        break;
-
-      case "questions":
-
-        if ($qid) {     // just get one multi-question
-            $questions = $DB->get_records_select("survey_questions", "id in ($qid)");
-            $questionorder = explode(",", $qid);
-
-            if ($scale = $DB->get_records("survey_questions", array("multi"=>$qid))) {
-                $scale = array_pop($scale);
-                echo $OUTPUT->heading("$scale->text - $strselectedquestions", 3);
-            } else {
-                echo $OUTPUT->heading($strselectedquestions, 3);
-            }
-
-        } else {        // get all top-level questions
-            $questions = $DB->get_records_list("survey_questions", "id", explode(',',$survey->questions));
-            $questionorder = explode(",", $survey->questions);
-
-            echo $OUTPUT->heading($strallquestions, 3);
-        }
-
-        if (! $results = survey_get_responses($survey->id, $currentgroup, $groupingid) ) {
-            echo $OUTPUT->notification(get_string("nobodyyet","survey"));
-
-        } else {
-
-            foreach ($questionorder as $key => $val) {
-                $question = $questions[$val];
-                if ($question->type < 0) {  // We have some virtual scales.  DON'T show them.
-                    $virtualscales = true;
-                    break;
-                }
-            }
-
-            foreach ($questionorder as $key => $val) {
-                $question = $questions[$val];
-
-                if ($question->type < 0) {  // We have some virtual scales.  DON'T show them.
-                    continue;
-                }
-                $question->text = get_string($question->text, "survey");
-
-                if ($question->multi) {
-                    echo $OUTPUT->heading($question->text . ':', 4);
-
-                    $subquestions = survey_get_subquestions($question);
-                    foreach ($subquestions as $subquestion) {
-                        if ($subquestion->type > 0) {
-                            echo "<p class=\"centerpara\">";
-                            echo "<a title=\"$strseemoredetail\" href=\"report.php?action=question&amp;id=$id&amp;qid=$subquestion->id\">";
-                            survey_print_graph("id=$id&amp;qid=$subquestion->id&amp;group=$currentgroup&amp;type=question.png");
-                            echo "</a></p>";
-                        }
-                    }
-                } else if ($question->type > 0 ) {
-                    echo "<p class=\"centerpara\">";
-                    echo "<a title=\"$strseemoredetail\" href=\"report.php?action=question&amp;id=$id&amp;qid=$question->id\">";
-                    survey_print_graph("id=$id&amp;qid=$question->id&amp;group=$currentgroup&amp;type=question.png");
-                    echo "</a></p>";
-
-                } else {
-                    $table = new html_table();
-                    $table->head = array($question->text);
-                    $table->align = array ("left");
-
-                    $contents = '<table cellpadding="15" width="100%">';
-
-                    if ($aaa = survey_get_user_answers($survey->id, $question->id, $currentgroup, "sa.time ASC")) {
-                        foreach ($aaa as $a) {
-                            $contents .= "<tr>";
-                            $contents .= '<td class="fullnamecell">'.fullname($a).'</td>';
-                            $contents .= '<td valign="top">'.s($a->answer1).'</td>';
-                            $contents .= "</tr>";
-                        }
-                    }
-                    $contents .= "</table>";
-
-                    $table->data[] = array($contents);
-
-                    echo html_writer::table($table);
-
-                    echo $OUTPUT->spacer(array('height'=>30)); // should be done with CSS instead
-                }
-            }
-        }
-
-        break;
-
-      case "question":
-        if (!$question = $DB->get_record("survey_questions", array("id"=>$qid))) {
-            print_error('cannotfindquestion', 'survey');
-        }
-        $question->text = get_string($question->text, "survey");
-
-        $answers =  explode(",", get_string($question->options, "survey"));
-
-        echo $OUTPUT->heading("$strquestion: $question->text", 3);
-
-
-        $strname = get_string("name", "survey");
-        $strtime = get_string("time", "survey");
-        $stractual = get_string("actual", "survey");
-        $strpreferred = get_string("preferred", "survey");
-        $strdateformat = get_string("strftimedatetime");
-
-        $table = new html_table();
-        $table->head = array("", $strname, $strtime, $stractual, $strpreferred);
-        $table->align = array ("left", "left", "left", "left", "right");
-        $table->size = array (35, "", "", "", "");
-
-        if ($aaa = survey_get_user_answers($survey->id, $question->id, $currentgroup)) {
-            foreach ($aaa as $a) {
-                if ($a->answer1) {
-                    $answer1 =  "$a->answer1 - ".$answers[$a->answer1 - 1];
-                } else {
-                    $answer1 =  "&nbsp;";
-                }
-                if ($a->answer2) {
-                    $answer2 = "$a->answer2 - ".$answers[$a->answer2 - 1];
-                } else {
-                    $answer2 = "&nbsp;";
-                }
-                $table->data[] = array(
-                       $OUTPUT->user_picture($a, array('courseid'=>$course->id)),
-                       "<a href=\"report.php?id=$id&amp;action=student&amp;student=$a->userid\">".fullname($a)."</a>",
-                       userdate($a->time),
-                       s($answer1), s($answer2));
-
-            }
-        }
-
-        echo html_writer::table($table);
-
-        break;
-
-      case "students":
-
-         echo $OUTPUT->heading(get_string("analysisof", "survey", get_string('participants')), 3);
-
-         if (! $results = survey_get_responses($survey->id, $currentgroup, $groupingid) ) {
-             echo $OUTPUT->notification(get_string("nobodyyet","survey"));
-         } else {
-             survey_print_all_responses($cm->id, $results, $course->id);
-         }
-
-        break;
-
-      case "student":
-         if (!$user = $DB->get_record("user", array("id"=>$student))) {
-             print_error('invaliduserid');
-         }
-
-         echo $OUTPUT->heading(get_string("analysisof", "survey", fullname($user)), 3);
-
-         if ($notes != '' and confirm_sesskey()) {
-             if (survey_get_analysis($survey->id, $user->id)) {
-                 if (! survey_update_analysis($survey->id, $user->id, $notes)) {
-                     echo $OUTPUT->notification(get_string("errorunabletosavenotes", "survey"), "notifyproblem");
-                 } else {
-                     echo $OUTPUT->notification(get_string("savednotes", "survey"), "notifysuccess");
-                 }
-             } else {
-                 if (! survey_add_analysis($survey->id, $user->id, $notes)) {
-                     echo $OUTPUT->notification(get_string("errorunabletosavenotes", "survey"), "notifyproblem");
-                 } else {
-                     echo $OUTPUT->notification(get_string("savednotes", "survey"), "notifysuccess");
-                 }
-             }
-         }
-
-         echo "<p class=\"centerpara\">";
-         echo $OUTPUT->user_picture($user, array('courseid'=>$course->id));
-         echo "</p>";
-
-         $questions = $DB->get_records_list("survey_questions", "id", explode(',', $survey->questions));
-         $questionorder = explode(",", $survey->questions);
-
-         if ($showscales) {
-             // Print overall summary
-            echo "<p class=\"centerpara\">";
-             survey_print_graph("id=$id&amp;sid=$student&amp;type=student.png");
-             echo "</p>";
-
-             // Print scales
-
-             foreach ($questionorder as $key => $val) {
-                 $question = $questions[$val];
-                 if ($question->type < 0) {  // We have some virtual scales.  Just show them.
-                     $virtualscales = true;
-                     break;
-                 }
-             }
-
-             foreach ($questionorder as $key => $val) {
-                 $question = $questions[$val];
-                 if ($question->multi) {
-                     if ($virtualscales && $question->type > 0) {  // Don't show non-virtual scales if virtual
-                         continue;
-                     }
-                     echo "<p class=\"centerpara\">";
-                     echo "<a title=\"$strseemoredetail\" href=\"report.php?action=questions&amp;id=$id&amp;qid=$question->multi\">";
-                     survey_print_graph("id=$id&amp;qid=$question->id&amp;sid=$student&amp;type=studentmultiquestion.png");
-                     echo "</a></p><br />";
-                 }
-             }
-         }
-
-         // Print non-scale questions
-
-         foreach ($questionorder as $key => $val) {
-             $question = $questions[$val];
-             if ($question->type == 0 or $question->type == 1) {
-                 if ($answer = survey_get_user_answer($survey->id, $question->id, $user->id)) {
-                    $table = new html_table();
-                     $table->head = array(get_string($question->text, "survey"));
-                     $table->align = array ("left");
-                    if (!empty($question->options) && $answer->answer1 > 0) {
-                        $answers = explode(',', get_string($question->options, 'survey'));
-                        if ($answer->answer1 <= count($answers)) {
-                            $table->data[] = array(s($answers[$answer->answer1 - 1])); // No html here, just plain text.
-                        } else {
-                            $table->data[] = array(s($answer->answer1)); // No html here, just plain text.
-                        }
-                    } else {
-                         $table->data[] = array(s($answer->answer1)); // No html here, just plain text.
-                    }
-                     echo html_writer::table($table);
-                     echo $OUTPUT->spacer(array('height'=>30));
-                 }
-             }
-         }
-
-         if ($rs = survey_get_analysis($survey->id, $user->id)) {
-            $notes = $rs->notes;
-         } else {
-            $notes = "";
-         }
-         echo "<hr noshade=\"noshade\" size=\"1\" />";
-         echo "<div class='studentreport'>";
-         echo "<form action=\"report.php\" method=\"post\">";
-         echo "<h3>$strnotes:</h3>";
-         echo "<blockquote>";
-         echo "<textarea name=\"notes\" rows=\"10\" cols=\"60\">";
-         p($notes);
-         echo "</textarea><br />";
-         echo "<input type=\"hidden\" name=\"action\" value=\"student\" />";
-         echo "<input type=\"hidden\" name=\"sesskey\" value=\"".sesskey()."\" />";
-         echo "<input type=\"hidden\" name=\"student\" value=\"$student\" />";
-         echo "<input type=\"hidden\" name=\"id\" value=\"$cm->id\" />";
-         echo "<input type=\"submit\" value=\"".get_string("savechanges")."\" />";
-         echo "</blockquote>";
-         echo "</form>";
-         echo "</div>";
-
-
-         break;
-
-      case "download":
-        echo $OUTPUT->heading($strdownload, 3);
-
-        require_capability('mod/survey:download', $context);
-
-        $numusers = survey_count_responses($survey->id, $currentgroup, $groupingid);
-        if ($numusers > 0) {
-            echo html_writer::tag('p', get_string("downloadinfo", "survey"), array('class' => 'centerpara'));
-
-            echo $OUTPUT->container_start('reportbuttons');
-            $options = array();
-            $options["id"] = "$cm->id";
-            $options["group"] = $currentgroup;
-
-            $options["type"] = "ods";
-            echo $OUTPUT->single_button(new moodle_url("download.php", $options), get_string("downloadods"));
-
-            $options["type"] = "xls";
-            echo $OUTPUT->single_button(new moodle_url("download.php", $options), get_string("downloadexcel"));
-
-            $options["type"] = "txt";
-            echo $OUTPUT->single_button(new moodle_url("download.php", $options), get_string("downloadtext"));
-            echo $OUTPUT->container_end();
-
-        } else {
-             echo html_writer::tag('p', get_string("nobodyyet", "survey"), array('class' => 'centerpara'));
-        }
-
-        break;
-
-    }
-    echo $OUTPUT->footer();
+}
+echo '<input type="hidden" name="sesskey" value="'.sesskey().'" />';
+echo '<input type="hidden" name="id" value="'.$cm->id.'" />';
+echo '<input type="hidden" name="orderby" value="'.$orderby.'" />';
+
+echo '</form>';
+
+// Include the needed js.
+$module = array('name' => 'mod_groupevaluation', 'fullpath' => '/mod/groupevaluation/module.js');
+$PAGE->requires->js_init_call('M.mod_groupevaluation.init_check', null, false, $module);
+//$PAGE->requires->js(new moodle_url($CFG->wwwroot . '/mod/groupevaluation/module.js'));
+
+echo $OUTPUT->box_end();
+
+echo html_writer::start_tag('style');
+foreach ($colorscale as $cell) {
+  $code = groupevaluation_color_code($cell->value);
+  echo '#'.$cell->id.' { background:'.$code.'; }';
+}
+echo html_writer::end_tag('style');
+
+// Finish the page.
+//echo '<script type="text/javascript" src="'.$CFG->wwwroot.'/mod/groupevaluation/module.js" type="text/javascript"></script>';
+
+echo $OUTPUT->footer();
+
+// Log this groupevaluation show non-respondents action.
+/*$context = context_module::instance($groupevaluation->cm->id);
+$anonymous = $groupevaluation->respondenttype == 'anonymous';
+
+$event = \mod_groupevaluation\event\non_respondents_viewed::create(array(
+                'objectid' => $groupevaluation->id,
+                'anonymous' => $anonymous,
+                'context' => $context
+));
+$event->trigger();*/

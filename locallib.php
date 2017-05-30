@@ -27,7 +27,7 @@
  require_once(dirname(__FILE__).'/lib.php');
 
 defined('MOODLE_INTERNAL') || die();
-define('groupevaluation_DEFAULT_PAGE_COUNT', 20);
+define('groupevaluation_DEFAULT_PAGE_COUNT', 5);
 
 /*
  * TODO Probablemente no utilice esta funcion -> BORRAR
@@ -99,27 +99,188 @@ define('groupevaluation_DEFAULT_PAGE_COUNT', 20);
      return false;
  }
 
- function view() {
-     global $CFG, $USER, $PAGE, $OUTPUT, $groupevaluation, $context, $course;
 
-     $PAGE->set_title(format_string($groupevaluation->name));
-     $PAGE->set_heading(format_string($course->fullname));
-
-     // Initialise the JavaScript.
-
-     echo $OUTPUT->header();
-
-     if (!has_capability('mod/groupevaluation:view', $context)) {
-         echo('<br/>');
-         groupevaluation_notify(get_string("noteligible", "groupevaluation", $groupevaluation->name));
-         echo('<div><a href="'.$CFG->wwwroot.'/course/view.php?id='.$groupevaluation->course->id.'" class="btn btn-default btn-lg active" role="button">'.
-             get_string("continue").'</a></div>');
-         exit;
-     }
-
-
-     echo $OUTPUT->heading(format_string($groupevaluation->name));
-
-    // Finish the page.
-    echo $OUTPUT->footer($groupevaluation->course);
+ // Access functions. //TODO Ver si podemos juntar todas para hacer solo una conexion a la base de datos
+ function groupevaluation_is_open($timeopen) {
+   return ($timeopen > 0) ? ($timeopen < time()) : false;
  }
+
+ function groupevaluation_is_closed($closedate) {
+   return ($closedate > 0) ? ($closedate < time()) : false;
+ }
+
+function user_is_eligible() {
+  global $context;
+   return (has_capability('mod/groupevaluation:view', $context) &&
+          has_capability('mod/groupevaluation:submit', $context));
+}
+
+function user_can_take($userid, $sid) {
+
+   if (!user_is_eligible()) {
+       return false;
+   } else if ($userid > 0) {
+       return user_new_assessment($userid, $sid);
+   } else {
+       return false;
+   }
+}
+
+function user_new_assessment($userid, $sid) {
+  global $DB;
+  $select = 'id = '.$sid.' AND authorid = '.$userid;
+  $survey = $DB->get_record_select('groupevaluation_surveys', $select);
+  $assessment = false;
+
+  if ($survey->status == groupevaluation_INCOMPLETE ||
+      $survey->status == groupevaluation_COMPLETE) {
+        $assessment = true;
+  } elseif ($survey->status == groupevaluation_DONE) {
+    $assessment = false;
+  }
+  return $assessment;
+}
+
+
+function groupevaluation_recalculate_weights($criterions, $newweight, $crtid=false) {
+  global $DB;
+  $sumweight = 0;
+  foreach ($criterions as $criterion) {
+    if (($criterion->id != $crtid) || !$crtid) {
+      $sumweight = $sumweight + $criterion->weight;
+    }
+  }
+
+  foreach ($criterions as $criterion) {
+    if ($sumweight > 0) {
+      $normalizedweight = $criterion->weight / $sumweight; // Normalized to 1
+      //$weight = floor($normalizedweight * (100 - $newweight));
+      $weight = round($normalizedweight * (100 - $newweight));
+      $DB->set_field('groupevaluation_criterions', 'weight', $weight, array('id' => $criterion->id));
+    }
+  }
+  return $sumweight;
+}
+
+function groupevaluation_save_answers($sid, $answers, $done=false) {
+  global $DB;
+  $survey = $DB->get_record('groupevaluation_surveys', array('id' => $sid));
+  $groupevaluationid = $survey->groupevaluationid;
+  $table = 'groupevaluation_assessments';
+
+  foreach ($answers as $answer) {
+    $criterionid = $answer->criterionid;
+
+    // Update assessments table
+    $conditions = array('surveyid' => $answer->surveyid, 'criterionid' => $criterionid);
+    if($entry = $DB->get_record($table, $conditions)) {
+      $entry->assessment = $answer->assessment;
+      $result = $DB->update_record($table, $entry);
+    } else {
+      $result = $DB->insert_record($table, $answer);
+    }
+  }
+
+  // Update status of survey
+  $survey->status = groupevaluation_COMPLETE;
+  if ($done) {
+    $survey->status = groupevaluation_DONE;
+  }
+  $result = $DB->update_record('groupevaluation_surveys', $survey);
+
+  // Update field viewresults in main table
+  //groupevaluation_update_viewresults($groupevaluationid);
+}
+
+//TODO No se utiliza
+function groupevaluation_update_viewresults($groupevaluationid) {
+  $surveys = $DB->get_records('groupevaluation_surveys', array('groupevaluationid' => $groupevaluationid));
+  $allsurveysdone = true;
+
+  foreach ($surveys as $survey) {
+    if ($survey->status != groupevaluation_DONE) {
+      $allsurveysdone = false;
+    }
+  }
+
+  if ($allsurveysdone && $surveys) {
+    $DB->set_field('groupevaluation', 'viewresults', 1, array('id' => $groupevaluationid));
+  }
+}
+
+function groupevaluation_color_code($assessment) {
+  if ($assessment != '-') {
+    $value = floor($assessment / 10);
+    $code = '#';
+
+    if ($value == 0) {        // Red 		      #FF0000 	255,0,0
+      $code .= 'FF0000';
+    } elseif ($value == 1) {  // FireBrick    #B22222 	178,34,34
+      $code .= 'B22222';
+    } elseif ($value == 2) {  // OrangeRed 	  #FF4500 	255,69,0
+      $code .= 'FF4500';
+    } elseif ($value == 3) {  // DarkOrange   #FF8C00 	255,140,0
+      $code .= 'FF8C00';
+    } elseif ($value == 4) {  // Orange 		  #FFA500 	255,165,0
+      $code .= 'FFA500';
+    } elseif ($value == 5) {  // Yellow 		  #FFFF00   255,255,0
+      $code .= 'FFFF00';
+    } elseif ($value == 6) {  // GreenYellow  #ADFF2F 	173,255,47
+      $code .= 'ADFF2F';
+    } elseif ($value == 7) {  // Chartreuse   #7FFF00 	127,255,0
+      $code .= '7FFF00';
+    } elseif ($value == 8) {  // LimeGreen 	  #32CD32 	50,205,50
+      $code .= '32CD32';
+    } elseif ($value == 9) {  // ForestGreen 	#228B22 	34,139,34
+      $code .= '228B22';
+    } elseif ($value == 10) { // Green 		    #008000 	0,128,0
+      $code .= '008000';
+    } else {
+      $code .= 'FFFFFF';
+    }
+  } else {
+    $code = '#FFFFFF';
+  }
+  return $code;
+}
+
+function groupevaluation_get_users_notresponded($groupevaluationid) {
+  global $DB;
+  $surveys = $DB->get_records('groupevaluation_surveys', array('groupevaluationid' => $groupevaluationid));
+  $idusers = array();
+
+  foreach ($surveys as $survey) {
+    if ($survey->status != groupevaluation_DONE) {
+      $idusers[] = $survey->authorid;
+    }
+  }
+
+  $users = $DB->get_records_list('user', 'id', $idusers);
+
+  return $users;
+}
+
+/**
+ * Called by HTML editor in showrespondents and Essay question. Based on question/essay/renderer.
+ * Pending general solution to using the HTML editor outside of moodleforms in Moodle pages.
+ */
+function groupevaluation_get_editor_options($context) {
+    return array(
+                    'subdirs' => 0,
+                    'maxbytes' => 0,
+                    'maxfiles' => -1,
+                    'context' => $context,
+                    'noclean' => 0,
+                    'trusttext' => 0
+    );
+}
+
+/*
+// A variant of Moodle's notify function, with a different formatting.
+function groupevaluation_notify($message) {
+   $message = clean_text($message);
+   $errorstart = '<div class="notifyproblem">';
+   $errorend = '</div>';
+   $output = $errorstart.$message.$errorend;
+   echo $output;
+}*/

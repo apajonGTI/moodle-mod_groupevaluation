@@ -88,18 +88,6 @@ $capabilities = array(
         )
     ),
 
-    // Ability to view individual responses to the groupevaluation.
-    'mod/groupevaluation:viewsingleresponse' => array(
-
-        'captype' => 'read',
-        'contextlevel' => CONTEXT_MODULE,
-        'legacy' => array(
-            'teacher' => CAP_ALLOW,
-            'editingteacher' => CAP_ALLOW,
-            'manager' => CAP_ALLOW
-         )
-    ),
-
     // Ability to download responses in a CSV file.
     'mod/groupevaluation:downloadresponses' => array(
 
