@@ -91,7 +91,7 @@ function notIncludeInGrade() {
   }
 }
 
-function addAnswer(stranswer, strvalue, strposition) {
+function addAnswer(stranswer, strvalue, strposition, srcdragdrop, strmoveanswer) {
     // Container <div> where dynamic content will be placed
     var answerscontainer = document.getElementById("answerscontainer");
     n = answerscontainer.childElementCount + 1;
@@ -100,38 +100,28 @@ function addAnswer(stranswer, strvalue, strposition) {
     document.getElementById("numanswers").value = n;
 
     for (i = 1; i < n; i++) {
-      tagweight = document.getElementById("tagvalue_" + i).value;
-      if ((typeof(tagweight) != "undefined") && (tagweight != null) && (tagweight != "null")) {
-        tagweight = 0;
+      tagweight = document.getElementById("tagvalue_" + i);
+      if ((typeof(tagweight) == "undefined") || (tagweight == null) || (tagweight == "null")) {
+        tagweight.value = 0;
       }
-      tagposition = document.getElementById("tagposition_" + i).value;
-      if ((typeof(tagposition) != "undefined") && (tagposition != null) && (tagposition != "null")) {
-        tagposition = 1;
+      tagposition = document.getElementById("tagposition_" + i);
+      if ((typeof(tagposition) == "undefined") || (tagposition == null) || (tagposition == "null")) {
+        tagposition.value = 1;
       }
-      texto = "<input name=\"tagcheckbox_"+i+"\" value=\"0\" id=\"tagcheckbox_"+i+"\" type=\"checkbox\" ";
+      texto  = "<div><img title=\""+strmoveanswer+"\" class=\"dragdrop\" src=\"" + srcdragdrop + "\"/></div><br/><br/>";
+      texto += "<input name=\"tagcheckbox_"+i+"\" value=\"0\" id=\"tagcheckbox_"+i+"\" type=\"checkbox\" ";
       texto += "onchange='checkboxChanged(\"tagcheckbox_"+i+"\")'></input>";
       texto += stranswer + " " + i + "<br/>";
       texto += strvalue + ": <select name=\"tagvalue_" + i + "\" id=\"tagvalue_" + i + "\" class=\"answeight\">";
       for (j=0;j<=100;j++) {
-        if (j == Math.round(tagweight)) {
+        if (j == Math.round(tagweight.value)) {
           texto += "<option selected=\"selected\" value=\"" + j + "\">" + j + "%</option>";
         } else {
           texto += "<option value=\"" + j + "\">" + j + "%</option>";
         }
       }
       texto += "</select><br/>";
-
-      texto += strposition + ": ";
-      onchange = "onchange=\"changeSelectPositions();\"";
-      texto += "<select name=\"tagposition_" + i + "\" id=\"tagposition_" + i + "\" class=\"answeight\" " + onchange + ">";
-      for (j=1;j<n;j++) {
-        if (j == tagposition) {
-          texto += "<option selected=\"selected\" value=\"" + j + "\">" + j + "</option>";
-        } else {
-          texto += "<option value=\"" + j + "\">" + j + "</option>";
-        }
-      }
-      texto += "</select>";
+      texto += "<input class=\"tagposition\" name=\"tagposition_" + i + "\" id=\"tagposition_" + i + "\" value=\"" + tagposition.value + "\" type=\"hidden\" />";
 
       document.getElementById("fitem_id_tag_" + i).firstChild.firstChild.innerHTML = texto;
     }
@@ -150,7 +140,8 @@ function addAnswer(stranswer, strvalue, strposition) {
               var label = document.createElement("label");
               label.setAttribute("for", "id_tag_" + n);
 
-              texto = "<input name=\"tagcheckbox_"+n+"\" value=\"0\" id=\"tagcheckbox_"+n+"\" type=\"checkbox\" ";
+              texto  = "<div><img title=\""+strmoveanswer+"\" class=\"dragdrop\" src=\"" + srcdragdrop + "\"/></div><br/><br/>";
+              texto += "<input name=\"tagcheckbox_"+n+"\" value=\"0\" id=\"tagcheckbox_"+n+"\" type=\"checkbox\" ";
               texto += "onchange='checkboxChanged(\"tagcheckbox_"+n+"\")'></input>";
               texto += stranswer + " " + n + "<br/>";
               texto += strvalue + ": <select name=\"tagvalue_" + n + "\" id=\"tagvalue_" + n + "\" class=\"answeight\">";
@@ -158,15 +149,7 @@ function addAnswer(stranswer, strvalue, strposition) {
                 texto += "<option value=\"" + j + "\">" + j + "%</option>";
               }
               texto += "</select><br/>";
-
-              texto += strposition + ": ";
-              onchange = "onchange=\"changeSelectPositions();\"";
-              texto += "<select name=\"tagposition_" + n + "\" id=\"tagposition_" + n + "\" class=\"answeight\" " + onchange + ">";
-              for (j=1;j<n;j++) {
-                texto += "<option value=\"" + j + "\">" + j + "</option>";
-              }
-              texto += "<option selected=\"selected\" value=\"" + n + "\">" + n + "</option>";
-              texto += "</select>";
+              texto += "<input class=\"tagposition\" name=\"tagposition_" + n + "\" id=\"tagposition_" + n + "\" value=\"" + n + "\" type=\"hidden\" />";
 
               label.innerHTML = texto;
 
@@ -189,7 +172,7 @@ function addAnswer(stranswer, strvalue, strposition) {
     answerscontainer.appendChild(qoptcontainer);
 }
 
-function removeAnswers(stranswer, strvalue, strposition) {
+function removeAnswers(stranswer, strvalue, strposition, srcdragdrop, strmoveanswer) {
     // Container <div> where dynamic content will be placed
     var answerscontainer = document.getElementById("answerscontainer");
     n = answerscontainer.childElementCount;
@@ -215,7 +198,9 @@ function removeAnswers(stranswer, strvalue, strposition) {
 
       if ((typeof(tagweight) != "undefined") && (tagweight != null) && (tagweight != "null") &&
           (typeof(tagposition) != "undefined") && (tagposition != null) && (tagposition != "null")) {
-        texto = "<input name=\"tagcheckbox_"+i+"\" value=\"0\" id=\"tagcheckbox_"+i+"\" type=\"checkbox\" ";
+
+        texto  = "<div><img title=\""+strmoveanswer+"\" class=\"dragdrop\" src=\"" + srcdragdrop + "\"/></div><br/><br/>";
+        texto += "<input name=\"tagcheckbox_"+i+"\" value=\"0\" id=\"tagcheckbox_"+i+"\" type=\"checkbox\" ";
         texto += "onchange='checkboxChanged(\"tagcheckbox_"+i+"\")'></input>";
         texto += stranswer + " " + i + "<br/>";
         texto += strvalue + ": <select name=\"tagvalue_" + i + "\" id=\"tagvalue_" + i + "\" class=\"answeight\">";
@@ -227,18 +212,7 @@ function removeAnswers(stranswer, strvalue, strposition) {
           }
         }
         texto += "</select><br/>";
-
-        texto += strposition + ": ";
-        onchange = "onchange=\"changeSelectPositions();\"";
-        texto += "<select name=\"tagposition_" + i + "\" id=\"tagposition_" + i + "\" class=\"answeight\" " + onchange + ">";
-        for (j=1;j<=n;j++) {
-          if (j == i) {
-            texto += "<option selected=\"selected\" value=\"" + j + "\">" + j + "</option>";
-          } else {
-            texto += "<option value=\"" + j + "\">" + j + "</option>";
-          }
-        }
-        texto += "</select>";
+        texto += "<input class=\"tagposition\" name=\"tagposition_" + i + "\" id=\"tagposition_" + i + "\" value=\"" + tagposition.value + "\" type=\"hidden\" />";
 
         document.getElementById("fitem_id_tag_" + i_old).firstChild.firstChild.innerHTML = texto;
         document.getElementById("fitem_id_tag_" + i_old).firstChild.firstChild.setAttribute("for", "id_tag_" + i);
@@ -252,6 +226,26 @@ function removeAnswers(stranswer, strvalue, strposition) {
       }
     }
 }
+
+/*function changeSelectPositions (answerid) {
+  var answerscontainer = document.getElementById("answerscontainer");
+  var answers = answerscontainer.childNodes;
+
+  while (answerscontainer.firstChild) {
+      answerscontainer.removeChild(answerscontainer.firstChild);
+  }
+
+  answers.sort(function(answer1, answer2){
+    id1 = answer1.id.split("qoptcontainer_")[1];
+    id2 = answer2.id.split("qoptcontainer_")[1];
+
+    return answer1.getElementById("tagposition_"+id1) - answer2.getElementById("tagposition_"+id2);
+  });
+
+  for (i=0;i<answers.length;i++) {
+    answerscontainer.appendChild(answers[i]);
+  }
+}*/
 
 function checkHasAnswers(msg) {
   var answerscontainer = document.getElementById("answerscontainer");
@@ -273,29 +267,6 @@ function checkboxChanged(id) {
     document.getElementById(id).value=0;
   }
 }
-
-
-//TODO borrar (sortable)
-$(document).ready(function(){
-            $(".list").sortable({
-                connectWith: '.list',
-                opacity: 0.5,
-                tolerance: 'pointer',
-                placeholder: 'place_holder_element',
-                helper: function(event, el) {
-                    var myclone = el.clone();
-                    $('body').append(myclone);
-                    return myclone;
-                },
-                receive: function( event, ui ) {
-					var list=$(this).sortable().attr("id");
-					$("#result_1").attr("value",ui.item.attr("id")+" movido a la lista "+list);
-                },
-                stop:	function( event, ui ) {
-					$("#result_2").attr("value",ui.item.attr("id")+" movido a posición "+(ui.item.index()+1));
-                }
-            }).disableSelection();
-        });
 
 function savePosition(url) {
 

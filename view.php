@@ -165,7 +165,7 @@ if (has_capability('mod/groupevaluation:editsurvey', $context)) {
       echo '<div><a href="'.$href.'" class="btn btn-default btn-lg" role="button">'.get_string('evaluate', 'groupevaluation').'</a></div>';
     } elseif ($status == groupevaluation_COMPLETE) {
       echo '<div>';
-      echo '<a href="'.$href.'" class="btn btn-default btn-lg" role="button">'.get_string('reevaluate', 'groupevaluation').'</a>';
+      echo '<a href="'.$href.'" class="btn btn-default btn-lg" role="button">'.get_string('evaluate', 'groupevaluation').'</a>';
       echo '<span style="color:red;"> '.get_string('inprogress', 'groupevaluation').'</span>';
       echo '<span> ('.get_string('notsubmitted', 'groupevaluation').')</span>';
       echo '</div>';

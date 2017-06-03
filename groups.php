@@ -199,8 +199,12 @@ if ($showall) {
 echo '<div class="clearer"></div>';
 echo $OUTPUT->box_start('left-align');
 
+$groups = array();
 if (!$groups) {
     echo $OUTPUT->notification(get_string('noexistinggroups', 'groupevaluation'));
+    $hrefgroups = $CFG->wwwroot.htmlspecialchars('/group/index.php?id='.$course->id);
+    echo "<div><a href=\"$hrefgroups\">".get_string("coursegroups", "groupevaluation")."</a></div>";
+
 } else {
     echo print_string('groupscreated', 'groupevaluation').' ('.$countgroups.')<br/>';
     echo print_string('groupsadded', 'groupevaluation').' ('.$countgroupsadded.')';
@@ -269,6 +273,8 @@ if (!$groups) {
     if (($addsubmit || $removesubmit) && (!is_array($addgroup) && !is_array($removegroup))) {
       echo $OUTPUT->notification(get_string('nogroupselected', 'groupevaluation'));
     }
+
+    echo '<br/>';
 
     // Submit buttons
     echo $OUTPUT->box_start('mdl-align');

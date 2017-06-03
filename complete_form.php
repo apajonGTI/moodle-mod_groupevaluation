@@ -137,9 +137,6 @@ class groupevaluation_complete_form extends moodleform {
 
             // Answers
             $tags = $DB->get_records_select('groupevaluation_tags', 'criterionid = '.$crtid, null, 'position');
-            $p = count($tags);
-
-
 
             $mform->addElement('html', '<div class="crt-answers">'); // Begin div qn-container.
             foreach ($tags as $tag) {
@@ -157,8 +154,7 @@ class groupevaluation_complete_form extends moodleform {
               }
 
               $mform->addElement('html', '<p><input name="'.$name.'" value="'.$tag->value.'" id="'.
-                                  $name.'" type="radio" '.$checked.' '.$disabled.'>('.$p.') '.$tag->text.'</p>');
-              $p--;
+                                  $name.'" type="radio" '.$checked.' '.$disabled.'> '.$tag->text.'</p>');
             }
             $mform->addElement('html', '</div>');
             $mform->addElement('html', '</div>'); // End div qn-container.
@@ -178,7 +174,7 @@ class groupevaluation_complete_form extends moodleform {
           $mform->addElement('html', '<div id="yui_3_17_2_1_1494530448840_1068" class="felement fgroup">');
 
           $mform->addElement('html', $cancelhtml);
-          $mform->addElement('html', '<input type="submit" id="savebutton" skipClientValidation="true" name="savebutton" value="'.
+          $mform->addElement('html', '<input type="submit" id="savebutton" name="savebutton" value="'.
                             $strsave.'" title="'.$strnotsend.'"/>');
           $mform->addElement('html', '<input type="submit" id="sendbutton" name="sendbutton" value="'.
                             $strsend.'" title="'.$strsend.'" onclick="return confirm(\''.$confirmtext.'\')" />');

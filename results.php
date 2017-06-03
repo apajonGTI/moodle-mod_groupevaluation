@@ -132,7 +132,7 @@ $query = 'SELECT * FROM mdl_groups WHERE id IN (SELECT DISTINCT groupid FROM mdl
 $groups = $DB->get_records_sql($query, array($userid, $groupevaluation->id));
 
 // GET CRITERIONS //
-$criterions = $DB->get_records('groupevaluation_criterions', array('groupevaluationid' => $groupevaluation->id));
+$criterions = $DB->get_records('groupevaluation_criterions', array('groupevaluationid' => $groupevaluation->id), 'position');
 $countcriterions = count($criterions);
 
 // VIEW OPTIONS //
@@ -428,9 +428,11 @@ if (!$isclosed && !has_capability('mod/groupevaluation:readresponses', $context)
         }
         $countcolumn++;
       }
-      if ($viewdeviation) { //TODO background-image: url([[pix:mod_workshop|userplan/task-todo]]);
+      if ($viewdeviation) {
         if (($countaverage > 0) && isset($selfevaluation)) {
-          $data[] = (($sumaverage / $countaverage) - $selfevaluation).'%';
+          $deviation = ($sumaverage / $countaverage) - $selfevaluation;
+          $data[] = groupevaluation_get_arrow($groupevaluation, $deviation).' '.$deviation.'%';
+
         } else {
           $data[] = '-';
         }

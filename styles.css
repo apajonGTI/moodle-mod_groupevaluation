@@ -75,6 +75,16 @@ div.qcontainer .qnums {
     border: medium dotted maroon;
 }
 
+div.qoptcontainer {
+    border: 1px solid #ccc;
+    margin: 0 0 10px;
+    padding-top: 10px;
+}
+
+div.qoptcontainer:focus, div.qoptcontainer:hover {
+    background-color:#f5f5f5;
+}
+
 div.qoptcontainer div.ftextarea {
     clear: all;
     float: none;
@@ -86,6 +96,15 @@ div.qoptcontainer div.ftextarea textarea.qopts {
     width: 600px;
     height: 10em;
     margin-left: 1px;
+}
+.place_holder_qoptcontainer {
+  margin: 1px solid #dddddd;
+  width: 100%;
+  float:left;
+  height:10em;
+  margin:5px;
+  background-color:#f5f5f5;
+  border:1px solid #ccc;
 }
 
 .response span.selected,
@@ -401,6 +420,21 @@ div.qcontainer .crtname {
 #page-mod-groupevaluation-criterions .qn-container {
     border: 1px solid gray;/*doted*/
     margin-bottom: 1em;
+    margin-left: 20px;
+}
+
+.element:focus, .element:hover {
+    background-color:#f5f5f5;
+}
+
+.place_holder_element {
+    width: 100%;
+    height:10em;
+    background-color:#f5f5f5;
+}
+
+.dragdrop:focus, .dragdrop:hover {
+  cursor: move;
 }
 
 #page-mod-groupevaluation-criterions .weight-container {
@@ -798,7 +832,7 @@ body.lockscroll {
 
 
 
-/*TODO Borrar (sortable)*/
+/*TODO Borrar (comprobar que no sirve pa nada)*/
 #sortable { list-style-type: none; margin: 0; padding: 0; width: 60%; }
 #sortable li { margin: 0 3px 3px 3px; padding: 0.4em; padding-left: 1.5em; font-size: 1.4em; height: 18px; }
 #sortable li span { position: absolute; margin-left: -1.3em; }

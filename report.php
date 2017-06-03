@@ -103,7 +103,7 @@ if ($newgrade) {
 
 // GET PARTICIPANTS //
 $where = 'groupevaluationid = '.$groupevaluation->id;
-if ($viewmode == 'crossevaluations') {
+if (($viewmode == 'crossevaluations') || ($viewmode == 'criterions')) {
   $where .= ' AND groupid = '.$groupid;
 }
 $select = 'SELECT DISTINCT userid FROM mdl_groupevaluation_surveys WHERE '.$where;
@@ -131,108 +131,7 @@ echo $OUTPUT->heading(format_string($groupevaluation->name));
 
 require('tabs.php');
 
-$usedgroupid = false;
-$sort = '';
-$startpage = false;
-$pagecount = false;
-$straverageweighted = get_string('averageweighted', 'groupevaluation');
-
-// Print the main part of the page.
-// Print the users with no responses
-
-// Preparing the table for output.
-$baseurl = new moodle_url('/mod/groupevaluation/report.php');
-$baseurl->params(array('id' => $cm->id));
-
-// TABLE COLUMNS //
-if ($viewmode == 'participants') {
-
-  $tablecolumns = array('userpic', 'fullname');
-  $tableheaders = array(get_string('userpic'), get_string('fullnameuser'));
-
-  $tablecolumns[] = 'average';
-  $tableheaders[] = get_string('assessmentofgroupmates', 'groupevaluation').'<br/><span style="font-size: smaller;">('.$straverageweighted.')</span>';
-
-  $tablecolumns[] = 'selfevaluation';
-  $tableheaders[] = get_string('selfevaluation', 'groupevaluation').'<br/><span style="font-size: smaller;">('.$straverageweighted.')</span>';
-
-  $tablecolumns[] = 'deviation';
-  $tableheaders[] = get_string('deviation', 'groupevaluation').'<br/><span style="font-size: smaller;">('.$straverageweighted.')</span>';
-
-  $tablecolumns[] = 'grade';
-  $tableheaders[] = get_string('grade', 'groupevaluation');
-
-  $tablecolumns[] = 'evaluatedby';
-  $tableheaders[] = get_string('evaluatedby', 'groupevaluation');
-
-} elseif ($viewmode == 'crossevaluations') {
-  $showall = true;
-  $tablecolumns[] = 'participant';
-  $tableheaders[] = get_string('reporttableheading', 'groupevaluation');;
-
-  $userscolumns = 0;
-  foreach ($participants as $parcitipant) {
-    // Username and link to the profilepage.
-    $profileurl = $CFG->wwwroot.'/user/view.php?id='.$parcitipant->id.'&amp;course='.$course->id;
-    $profilelink = '<strong><a href="'.$profileurl.'">'.fullname($parcitipant).'</a></strong>';
-    $userscolumns++;
-    $tablecolumns[] = 'user_'.$userscolumns;
-    $tableheaders[] = $profilelink;
-  }
-}
-
-$tablecolumns[] = 'view';
-$tableheaders[] = '';
-
-$tableid = 'groupevaluation-groups-'.$course->id;
-$table = new flexible_table($tableid);
-
-$table->define_columns($tablecolumns);
-$table->define_headers($tableheaders);
-$table->define_baseurl($baseurl);
-
-$table->sortable(true, 'lastname', SORT_DESC);
-$table->set_attribute('cellspacing', '0');
-$table->set_attribute('id', 'showentrytable');
-$table->set_attribute('class', 'flexible generaltable generalbox');
-$table->set_control_variables(array(
-            TABLE_VAR_SORT    => 'ssort',
-            TABLE_VAR_IFIRST  => 'sifirst',
-            TABLE_VAR_ILAST   => 'silast',
-            TABLE_VAR_PAGE    => 'spage'
-            ));
-
-// No sorting
-$table->no_sorting('view');
-if ($viewmode == 'participants') {
-  $table->no_sorting('evaluatedby');
-} elseif ($viewmode == 'crossevaluations') {
-  $table->no_sorting('participant');
-  for ($i=1; $i <= $userscolumns; $i++) {
-    $table->no_sorting('user_'.$i);
-  }
-}
-
-$table->setup();
-
-if ($table->get_sql_sort()) {
-    $sort = $table->get_sql_sort();
-} else {
-    $sort = '';
-}
-
-$table->initialbars(false);
-
-if ($showall) {
-    $startpage = false;
-    $pagecount = false;
-} else {
-    $table->pagesize($perpage, $countparticipants);
-    $startpage = $table->get_page_start();
-    $pagecount = $table->get_page_size();
-}
-
-// Print the list of groups.
+// Print the list.
 echo '<div class="clearer"></div>';
 echo $OUTPUT->box_start('left-align');
 
@@ -240,11 +139,12 @@ echo '<form class="mform" action="report.php" method="post" id="groupevaluation_
 
 echo $OUTPUT->container_start('view_options', 'view_options');
 $options = array( 'participants' => get_string('participants','groupevaluation'),
-                  'crossevaluations' => get_string('crossevaluations','groupevaluation'));
+                  'crossevaluations' => get_string('crossevaluations','groupevaluation'),
+                  'criterions' => get_string('criterions','groupevaluation'));
 echo html_writer::select($options, 'viewmode', $viewmode, false, array('id' => 'viewmode', 'onchange' => 'viewSubmit("groupevaluation_reportform", false)'));
 echo $OUTPUT->container_end();
 
-if ($viewmode == 'crossevaluations') {
+if (($viewmode == 'crossevaluations') || ($viewmode == 'criterions')) {
   echo $OUTPUT->container_start('select_groups', 'select_groups');
 
   $options = array(0 => '--- '.get_string('group','groupevaluation').' ---');
@@ -255,16 +155,156 @@ if ($viewmode == 'crossevaluations') {
   echo $OUTPUT->container_end();
 }
 
-$colorscale = array ();
 
 if (!$participants) {
-  if (($viewmode == 'crossevaluations') && (!$groupid)) {
+  if ((($viewmode == 'crossevaluations') || ($viewmode == 'criterions')) && (!$groupid)) {
     echo '<div class="notifyproblem">'.get_string('selectgroup', 'groupevaluation').'</div>';
   } else {
     echo $OUTPUT->notification(get_string('noexistingparticipants', 'enrol'));
   }
 } else {
+  $straverageweighted = get_string('averageweighted', 'groupevaluation');
+  $straverage = get_string('average', 'groupevaluation');
+
+  if ($viewmode == 'criterions') {
+    $criterions = $DB->get_records('groupevaluation_criterions', array('groupevaluationid' => $groupevaluation->id), 'position');
+    echo print_string('groupevaluationcriterions', 'groupevaluation').' ('.count($criterions).')';
+
+  } else {
+    $criterions = array(0); // all criterions (general report)
     echo print_string('groupevaluationparticipants', 'groupevaluation').' ('.$countparticipants.')';
+
+  }
+
+
+  // Preparing the table for output.
+  $baseurl = new moodle_url('/mod/groupevaluation/report.php');
+  $baseurl->params(array('id' => $cm->id));
+
+  foreach ($criterions as $criterion) {
+    if ($viewmode == 'criterions') {
+      echo $OUTPUT->heading($criterion->position.' - '.$criterion->name, 5);
+    }
+
+    $sort = '';
+    $startpage = false;
+    $pagecount = false;
+    $tablecolumns = array ();
+    $tableheaders = array ();
+
+    // TABLE COLUMNS //
+    if ($viewmode == 'participants') {
+
+      $tablecolumns[] = 'userpic';
+      $tableheaders[] = get_string('userpic');
+      $tablecolumns[] = 'fullname';
+      $tableheaders[] = get_string('fullnameuser');
+
+      $tablecolumns[] = 'average';
+      $tableheaders[] = get_string('assessmentofgroupmates', 'groupevaluation').'<br/><span style="font-size: smaller;">('.$straverageweighted.')</span>';
+
+      $tablecolumns[] = 'selfevaluation';
+      $tableheaders[] = get_string('selfevaluation', 'groupevaluation').'<br/><span style="font-size: smaller;">('.$straverageweighted.')</span>';
+
+      $tablecolumns[] = 'deviation';
+      $tableheaders[] = get_string('deviation', 'groupevaluation').'<br/><span style="font-size: smaller;">('.$straverageweighted.')</span>';
+
+      $tablecolumns[] = 'grade';
+      $tableheaders[] = get_string('grade', 'groupevaluation');
+
+      $tablecolumns[] = 'evaluatedby';
+      $tableheaders[] = get_string('evaluatedby', 'groupevaluation');
+
+    } elseif (($viewmode == 'crossevaluations') || ($viewmode == 'criterions')) {
+      $showall = true;
+
+      $tablecolumns[] = 'participant';
+      $tableheaders[] = get_string('reporttableheading', 'groupevaluation');
+
+      $userscolumns = 0;
+      foreach ($participants as $parcitipant) {
+        // Username and link to the profilepage.
+        $profileurl = $CFG->wwwroot.'/user/view.php?id='.$parcitipant->id.'&amp;course='.$course->id;
+        $profilelink = '<strong><a href="'.$profileurl.'">'.fullname($parcitipant).'</a></strong>';
+        $userscolumns++;
+        $tablecolumns[] = 'user_'.$userscolumns;
+        $tableheaders[] = $profilelink;
+      }
+
+      if ($viewmode == 'criterions') {
+        $tablecolumns[] = 'average';
+        $tableheaders[] = get_string('assessmentofgroupmates', 'groupevaluation').'<br/><span style="font-size: smaller;">('.$straverage.')</span>';
+
+        $tablecolumns[] = 'selfevaluation';
+        $tableheaders[] = get_string('selfevaluation', 'groupevaluation');
+
+        $tablecolumns[] = 'deviation';
+        $tableheaders[] = get_string('deviation', 'groupevaluation').'<br/><span style="font-size: smaller;">('.$straverage.')</span>';
+      }
+    }
+
+    if (($viewmode == 'participants') || ($viewmode == 'crossevaluations')) {
+      $tablecolumns[] = 'view';
+      $tableheaders[] = '';
+    }
+
+    $auxid = $course->id;
+    if ($viewmode == 'criterions') {
+      $auxid = $criterion->id;
+    }
+
+    $tableid = 'groupevaluation-groups-'.$auxid;
+    $table = new flexible_table($tableid);
+
+    $table->define_columns($tablecolumns);
+    $table->define_headers($tableheaders);
+    $table->define_baseurl($baseurl);
+
+    $table->sortable(true, 'lastname', SORT_DESC);
+    $table->set_attribute('cellspacing', '0');
+    $table->set_attribute('id', 'showentrytable');
+    $table->set_attribute('class', 'flexible generaltable generalbox');
+    $table->set_control_variables(array(
+                TABLE_VAR_SORT    => 'ssort',
+                TABLE_VAR_IFIRST  => 'sifirst',
+                TABLE_VAR_ILAST   => 'silast',
+                TABLE_VAR_PAGE    => 'spage'
+                ));
+
+    // No sorting
+    if ($viewmode == 'participants') {
+      $table->no_sorting('evaluatedby');
+      $table->no_sorting('view');
+    } elseif (($viewmode == 'crossevaluations') || ($viewmode == 'criterions')) {
+      $table->no_sorting('participant');
+      for ($i=1; $i <= $userscolumns; $i++) {
+        $table->no_sorting('user_'.$i);
+      }
+      if ($viewmode == 'crossevaluations') {
+        $table->no_sorting('view');
+      }
+    }
+
+    $table->setup();
+
+    if ($table->get_sql_sort()) {
+        $sort = $table->get_sql_sort();
+    } else {
+        $sort = '';
+    }
+
+    $table->initialbars(false);
+
+    if ($showall) {
+        $startpage = false;
+        $pagecount = false;
+    } else {
+        $table->pagesize($perpage, $countparticipants);
+        $startpage = $table->get_page_start();
+        $pagecount = $table->get_page_size();
+    }
+
+    $colorscale = array ();
 
     // For paging I use array_slice().
     if ($startpage !== false AND $pagecount !== false) {
@@ -281,7 +321,7 @@ if (!$participants) {
       if ($viewmode == 'participants') {
         $data = array ($OUTPUT->user_picture($user, array('courseid' => $course->id)), $profilelink);
         $countcolumn++;
-      } elseif ($viewmode == 'crossevaluations') {
+      } elseif (($viewmode == 'crossevaluations') || ($viewmode == 'criterions')) {
         $data = array ($profilelink);
       }
       $countcolumn++;
@@ -289,40 +329,56 @@ if (!$participants) {
       $sumaverage = 0;
       $countaverage = 0;
       $selfevaluation = '-';
+
       foreach ($participants as $author) {
-        $where = 'userid = '.$userid.' AND authorid = '.$author->id.' AND groupevaluationid = '.$groupevaluation->id;
-        $query = 'SELECT * FROM mdl_groupevaluation_assessments WHERE surveyid IN ('.
-                  'SELECT DISTINCT id FROM mdl_groupevaluation_surveys WHERE '.$where.')';
-        $answers = $DB->get_records_sql($query);
 
-        // Calculate the weight taking into account the criterions answered, maintaining the proportions.
-        // Normalize weight
-        $baseweigh = 0;
-        $query2 = 'SELECT * FROM mdl_groupevaluation_criterions WHERE id IN ('.
-                  'SELECT DISTINCT criterionid FROM mdl_groupevaluation_assessments WHERE surveyid IN ('.
-                  'SELECT DISTINCT id FROM mdl_groupevaluation_surveys WHERE '.$where.'))';
-        $criterionsweights = $DB->get_records_sql($query2);
-        foreach ($criterionsweights as $criterionsweight) {
-          $baseweigh = $baseweigh + $criterionsweight->weight;
-        }
+        if ($viewmode == 'criterions') {
 
-        $weightedsumauthor = 0;
-        foreach ($answers as $answer) { // answer per criterion
+          $where = 'userid = '.$userid.' AND authorid = '.$author->id.' AND groupevaluationid = '.$groupevaluation->id;
+          $query = 'SELECT * FROM mdl_groupevaluation_assessments WHERE surveyid IN ('.
+                    'SELECT DISTINCT id FROM mdl_groupevaluation_surveys WHERE '.$where.') AND criterionid = '.$criterion->id;
+          $answer = $DB->get_record_sql($query);
+
+          $weightedsumauthor = '-';
+          if ($answer) {
+            $weightedsumauthor = $answer->assessment;
+          }
+
+        } else {
+          $where = 'userid = '.$userid.' AND authorid = '.$author->id.' AND groupevaluationid = '.$groupevaluation->id;
+          $query = 'SELECT * FROM mdl_groupevaluation_assessments WHERE surveyid IN ('.
+                    'SELECT DISTINCT id FROM mdl_groupevaluation_surveys WHERE '.$where.')';
+          $answers = $DB->get_records_sql($query);
+
+          // Calculate the weight taking into account the criterions answered, maintaining the proportions.
           // Normalize weight
-          $criterionweight = $DB->get_record('groupevaluation_criterions', array('id' => $answer->criterionid));
-          if (!$baseweigh) {
+          $baseweigh = 0;
+          $query2 = 'SELECT * FROM mdl_groupevaluation_criterions WHERE id IN ('.
+                    'SELECT DISTINCT criterionid FROM mdl_groupevaluation_assessments WHERE surveyid IN ('.
+                    'SELECT DISTINCT id FROM mdl_groupevaluation_surveys WHERE '.$where.'))';
+          $criterionsweights = $DB->get_records_sql($query2);
+          foreach ($criterionsweights as $criterionsweight) {
+            $baseweigh = $baseweigh + $criterionsweight->weight;
+          }
+
+          $weightedsumauthor = 0;
+          foreach ($answers as $answer) { // answer per criterion
+            // Normalize weight
+            $criterionweight = $DB->get_record('groupevaluation_criterions', array('id' => $answer->criterionid));
+            if (!$baseweigh) {
+              $weightedsumauthor = '-';
+            } else {
+              $normalizedweight = ($criterionweight->weight) / $baseweigh;
+              // Weighted sum
+              $weightedsumauthor = $weightedsumauthor + (($answer->assessment) * $normalizedweight);
+            }
+          }
+          if (!$answers) {
             $weightedsumauthor = '-';
-          } else {
-            $normalizedweight = ($criterionweight->weight) / $baseweigh;
-            // Weighted sum
-            $weightedsumauthor = $weightedsumauthor + (($answer->assessment) * $normalizedweight);
           }
         }
-        if (!$answers) {
-          $weightedsumauthor = '-';
-        }
 
-        if ($viewmode == 'crossevaluations') {
+        if (($viewmode == 'crossevaluations') || ($viewmode == 'criterions')) {
           // Color escale array.
           $cell = new stdClass();
           $cell->id = $tableid.'_r'.$countrow.'_c'.$countcolumn;
@@ -347,7 +403,7 @@ if (!$participants) {
         }
       }
 
-      if ($viewmode == 'participants') {
+      if (($viewmode == 'participants') || ($viewmode == 'criterions')) {
         if ($countaverage > 0) {
           $average = round(($sumaverage / $countaverage), 2).'%';
         } else {
@@ -359,15 +415,11 @@ if (!$participants) {
         }
 
         if ($countaverage > 0 && ($selfevaluation != '-')) {
-          $deviation = round(($average - $selfevaluation), 2).'%';
+          $deviationaux = round(($average - $selfevaluation), 2);
+          $deviation = groupevaluation_get_arrow($groupevaluation, $deviationaux).' '.$deviationaux.'%';
+
         } else {
           $deviation = '-';
-        }
-
-        // GET GRADE //
-        $grade = '-';
-        if ($grades[$userid]->grade) {
-          $grade = round($grades[$userid]->grade, 2).'%';
         }
 
         // Average of groupmates //
@@ -377,61 +429,74 @@ if (!$participants) {
         // Average deviation //
         $data[] = $deviation;
 
-        // Grade //
-        $streditgrade = get_string('edit');
-        $strprompt = get_string('enternewgrade', 'groupevaluation');
-        $attributes = 'value="'.$userid.'" name="editgradebutton['.$userid.']"  onclick=\'setNewGrade('.$userid.', "'.$strprompt.'");\'';
-        $extra = 'title="'.$streditgrade.'" src="'.$OUTPUT->pix_url('t/editstring').'" type="image"';
-        $imgeditgrade = '<input id="id_editgradebutton_'.$userid.'" '.$attributes.' '.$extra.'/>';
+        $countcolumn = $countcolumn + 3;
 
-        $data[] = '<strong>'.$grade.'</strong> '.$imgeditgrade;
-        $countcolumn = $countcolumn + 4;
-
-        // evaluatedby
-        $evaluatedby = '';
-        $separator = '';
-        $groupmembers = array();
-
-        // In case a user belongs to several groups
-        $query = 'SELECT * FROM mdl_groups WHERE id IN (SELECT DISTINCT groupid FROM mdl_groups_members WHERE userid=?) '.
-                'AND id IN (SELECT DISTINCT groupid FROM mdl_groupevaluation_surveys WHERE groupevaluationid=?)';
-        $groups = $DB->get_records_sql($query, array($userid, $groupevaluation->id));
-
-        foreach ($groups as $group) {
-          if (count($groups)>1) {
-            $evaluatedby = $evaluatedby.$separator.$group->name.': ';
-            $separator = '';
+        if ($viewmode == 'participants') { // columns grade & evaluatedby
+          // GET GRADE //
+          $grade = '-';
+          if ($grades[$userid]->grade) {
+            $grade = round($grades[$userid]->grade, 2).'%';
           }
 
-          $groupmembers = $DB->get_records("groups_members", array('groupid' => $group->id));
-          foreach ($groupmembers as $groupmember) {
-            $user = $DB->get_record('user', array('id' => $groupmember->userid));
+          // Grade //
+          $streditgrade = get_string('edit');
+          $strprompt = get_string('enternewgrade', 'groupevaluation');
+          $attributes = 'value="'.$userid.'" name="editgradebutton['.$userid.']"  onclick=\'setNewGrade('.$userid.', "'.$strprompt.'");\'';
+          $extra = 'title="'.$streditgrade.'" src="'.$OUTPUT->pix_url('t/editstring').'" type="image"';
+          $imgeditgrade = '<input id="id_editgradebutton_'.$userid.'" '.$attributes.' '.$extra.'/>';
 
-            $conditions = 'userid = '.$userid.' AND groupevaluationid = '.$groupevaluation->id.' AND authorid = '.$user->id.' AND groupid = '.$group->id;
-            $survey = $DB->get_record_select('groupevaluation_surveys', $conditions);
-            $style = 'style="color: red;"';
-            if ($survey) {
-              if ($survey->status == groupevaluation_DONE) {
-                $style = '';
-              }
+          $data[] = '<strong>'.$grade.'</strong> '.$imgeditgrade;
+          $countcolumn++;
+
+          // evaluatedby
+          $evaluatedby = '';
+          $separator = '';
+          $groupmembers = array();
+
+          // In case a user belongs to several groups
+          $query = 'SELECT * FROM mdl_groups WHERE id IN (SELECT DISTINCT groupid FROM mdl_groups_members WHERE userid=?) '.
+                  'AND id IN (SELECT DISTINCT groupid FROM mdl_groupevaluation_surveys WHERE groupevaluationid=?)';
+          $groups = $DB->get_records_sql($query, array($userid, $groupevaluation->id));
+
+          foreach ($groups as $group) {
+            if (count($groups)>1) {
+              $evaluatedby = $evaluatedby.$separator.$group->name.': ';
+              $separator = '';
             }
-            $profileurl = $CFG->wwwroot.'/user/view.php?id='.$user->id.'&amp;course='.$course->id;
-            $profilelink = '<a href="'.$profileurl.'" '.$style.'>'.fullname($user).'</a>';
 
-            $evaluatedby = $evaluatedby.$separator.$profilelink;
-            $separator = ', ';
+            $groupmembers = $DB->get_records("groups_members", array('groupid' => $group->id));
+            foreach ($groupmembers as $groupmember) {
+              $user = $DB->get_record('user', array('id' => $groupmember->userid));
+
+              $conditions = 'userid = '.$userid.' AND groupevaluationid = '.$groupevaluation->id.' AND authorid = '.$user->id.' AND groupid = '.$group->id;
+              $survey = $DB->get_record_select('groupevaluation_surveys', $conditions);
+              $style = 'style="color: red;"';
+              if ($survey) {
+                if ($survey->status == groupevaluation_DONE) {
+                  $style = '';
+                }
+              }
+              $profileurl = $CFG->wwwroot.'/user/view.php?id='.$user->id.'&amp;course='.$course->id;
+              $profilelink = '<a href="'.$profileurl.'" '.$style.'>'.fullname($user).'</a>';
+
+              $evaluatedby = $evaluatedby.$separator.$profilelink;
+              $separator = ', ';
+            }
+            $separator = '<br/>';
           }
-          $separator = '<br/>';
+          $data[] = $evaluatedby;
+          $countcolumn++;
         }
-        $data[] = $evaluatedby;
+      }
+
+      if (($viewmode == 'participants') || ($viewmode == 'crossevaluations')) {
+        // Column view //
+        $strview = get_string('view', 'groupevaluation');
+        $href = $CFG->wwwroot.htmlspecialchars('/mod/groupevaluation/results.php?id='.$cm->id.'&userid='.$userid.'&allfields=1');
+        $data[] = '<a href="'.$href.'" class="btn btn-default btn-lg"'.'role="button" title="'.$strview.'">'.$strview.'</a>';
         $countcolumn++;
       }
 
-      // Column view //
-      $strview = get_string('view', 'groupevaluation');
-      $href = $CFG->wwwroot.htmlspecialchars('/mod/groupevaluation/results.php?id='.$cm->id.'&userid='.$user->id.'&allfields=1');
-      $data[] = '<a href="'.$href.'" class="btn btn-default btn-lg"'.'role="button" title="'.$strview.'">'.$strview.'</a>';
-      $countcolumn++;
       $table->add_data($data);
       $countrow++;
     }
@@ -449,6 +514,8 @@ if (!$participants) {
         echo $OUTPUT->container(html_writer::link($allurl,
                         get_string('showall', '', $countparticipants)), array(), 'showall');
     }
+    echo '<br/>';
+  } // end foreach(criterions as criterion)
 }
 echo '<input type="hidden" name="sesskey" value="'.sesskey().'" />';
 echo '<input type="hidden" name="id" value="'.$cm->id.'" />';

@@ -79,6 +79,7 @@ class mod_groupevaluation_mod_form extends moodleform_mod {
         // -------------------------------------------------------------------------------
         $mform->addElement('header', 'results', get_string('results', 'groupevaluation'));
         $mform->addHelpButton('results', 'results', 'groupevaluation');
+        $mform->setExpanded('results');
 
 
 
@@ -99,8 +100,7 @@ class mod_groupevaluation_mod_form extends moodleform_mod {
         $mform->addHelpButton('viewweight', 'weight', 'groupevaluation');
         $mform->setDefault('viewweight', 0);
 
-        $mform->addElement('html', '</div>');
-        $mform->addElement('html', '<div class="viewcheckbox" style="float:left;">');
+        $mform->addElement('html', '</div><div class="viewcheckbox" style="float:left;">');
 
         $mform->addElement('advcheckbox', 'viewmaximum', get_string('maximum', 'groupevaluation'), null, array('group' => 1), array(0, 1));
         $mform->setDefault('viewmaximum', 1);
@@ -121,6 +121,16 @@ class mod_groupevaluation_mod_form extends moodleform_mod {
         $mform->addElement('html', '<div style="clear: left;">');
 
         $addsoftdevgroup = array();
+        $srcarrowreddown = new moodle_url($CFG->wwwroot.'/mod/groupevaluation/pix/arrow_red_down.gif');
+        $srcarrowyellowdown = new moodle_url($CFG->wwwroot.'/mod/groupevaluation/pix/arrow_yellow_down.gif');
+        $srcarrowyellowup = new moodle_url($CFG->wwwroot.'/mod/groupevaluation/pix/arrow_yellow_up.gif');
+        $srcarrowgreenup = new moodle_url($CFG->wwwroot.'/mod/groupevaluation/pix/arrow_green_up.gif');
+        $arrowreddown = '<img class="iconsmall" src="'.$srcarrowreddown.'">';
+        $arrowyellowdown = '<img class="iconsmall" src="'.$srcarrowyellowdown.'">';
+        $arrowyellowup = '<img class="iconsmall" src="'.$srcarrowyellowup.'">';
+        $arrowgreenup = '<img class="iconsmall" src="'.$srcarrowgreenup.'">';
+        $softarrows = $arrowyellowup.' '.$arrowyellowdown;
+        $hardarrows = $arrowgreenup.' '.$arrowreddown;
 
         $addsoftdevgroup[] =& $mform->createElement('text', 'softupperdeviation', '');
         $mform->setType('softupperdeviation', PARAM_INT);
@@ -130,7 +140,7 @@ class mod_groupevaluation_mod_form extends moodleform_mod {
         $mform->setType('softlowerdeviation', PARAM_INT);
         $mform->setDefault('softlowerdeviation', -20);
 
-        $mform->addGroup($addsoftdevgroup, 'addsoftdevgroup', get_string('softdeviation', 'groupevaluation'), ' ', false);
+        $mform->addGroup($addsoftdevgroup, 'addsoftdevgroup', get_string('softdeviation', 'groupevaluation'), ' '.$softarrows.' ', false);
         $mform->addHelpButton('addsoftdevgroup', 'softdeviation', 'groupevaluation');
 
         $addharddevgroup = array();
@@ -143,7 +153,7 @@ class mod_groupevaluation_mod_form extends moodleform_mod {
         $mform->setType('hardlowerdeviation', PARAM_INT);
         $mform->setDefault('hardlowerdeviation', -40);
 
-        $mform->addGroup($addharddevgroup, 'addharddevgroup', get_string('harddeviation', 'groupevaluation'), ' ', false);
+        $mform->addGroup($addharddevgroup, 'addharddevgroup', get_string('harddeviation', 'groupevaluation'), ' '.$hardarrows.' ', false);
         $mform->addHelpButton('addharddevgroup', 'harddeviation', 'groupevaluation');
 
         $mform->addElement('html', '</div>');

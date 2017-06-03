@@ -54,6 +54,7 @@ function xmldb_groupevaluation_install() {
         $tagrecord->criterionid = $criterionid;
         $tagrecord->text = $crtstring[$code.$defaultcriterion.'_ans'.$i];
         $tagrecord->value = $i * 20;
+        $tagrecord->position = 6 - $i;
         $tagrecord->timemodified = $criterionrecord->timecreated;
 
         $resulttag = $DB->insert_record('groupevaluation_tags', $tagrecord);

@@ -28,7 +28,6 @@ require_once($CFG->dirroot.'/mod/groupevaluation/locallib.php');
 $id             = required_param('id', PARAM_INT);                // Course module ID
 $action         = optional_param('action', 'main', PARAM_ALPHA);  // Screen.
 $crtid          = optional_param('crtid', 0, PARAM_INT);          // criterion id.
-$movecrt        = optional_param('movecrt', 0, PARAM_INT);        // criterion id to move.
 $delcrt         = optional_param('delcrt', 0, PARAM_INT);         // criterion id to delete
 $reweight       = optional_param('reweight', 0, PARAM_INT);         // TODO Borrar
 $lang           = optional_param('lang', 'en', PARAM_ALPHA);         //
@@ -86,12 +85,15 @@ if ($delcrt) {
     $crtid = $delcrt;
     $criterion = $DB->get_record('groupevaluation_criterions', array('id' => $crtid));
     if (!$criterion->defaultcriterion) {
-      // Update the weight values
-      $DB->set_field('groupevaluation_criterions', 'weight', 0, array('id' => $crtid));
-      groupevaluation_recalculate_weights($criterions, 0, $crtid);
 
-      // Move the criterion to the last position
-      move_criterion($criterions, $crtid, count($criterions));
+      if (isset($criterion->defaultcriterion)) {
+        // Update the weight values
+        $DB->set_field('groupevaluation_criterions', 'weight', 0, array('id' => $crtid));
+        groupevaluation_recalculate_weights($criterions, 0, $crtid);
+
+        // Move the criterion to the last position
+        move_criterion($criterions, $crtid, count($criterions));
+      }
 
       $DB->delete_records('groupevaluation_criterions', array('id' => $crtid));
       $DB->delete_records('groupevaluation_tags', array('criterionid' => $crtid));
@@ -136,7 +138,7 @@ if ($reweight) {
 
 // ******************** MAIN VIEW ****************************************
 if ($action == 'main') {
-    $criterionsform = new groupevaluation_criterions_form('criterions.php', $movecrt);
+    $criterionsform = new groupevaluation_criterions_form('criterions.php');
     $sdata = clone($groupevaluation);
     $sdata->id = $cm->id;
 
@@ -162,8 +164,6 @@ if ($action == 'main') {
 
         if (isset($exformdata->savedbutton)) {
             $crtformdata->savedbutton = $exformdata->savedbutton;
-        } else if (isset($exformdata->movebutton)) {
-            $crtformdata->movebutton = $exformdata->movebutton;
         } else if (isset($exformdata->moveherebutton)) {
             $crtformdata->moveherebutton = $exformdata->moveherebutton;
         } else if (isset($exformdata->editbutton)) {
@@ -177,7 +177,9 @@ if ($action == 'main') {
         } else if (isset($exformdata->hiddenweight)) {
             $crtformdata->hiddenweight = $exformdata->hiddenweight;
         }
-
+        if (isset($exformdata->movecrt)) {
+            $crtformdata->movecrt = $exformdata->movecrt;
+        }
 
         // Insert a section break.
         if (isset($crtformdata->removebutton)) {
@@ -211,12 +213,6 @@ if ($action == 'main') {
             $reload = true;
             $showpopup = false;
 
-        } else if (isset($crtformdata->movebutton)) {
-            // Nothing I do will seem to reload the form with new data, except for moving away from the page, so...
-            redirect($CFG->wwwroot.'/mod/groupevaluation/criterions.php?id='.$cm->id.
-                   '&movecrt='.key($crtformdata->movebutton));
-            $reload = true;
-            $showpopup = false;
         } else if (isset($crtformdata->moveherebutton)) {
             // Need to use the key, since IE returns the image position as the value rather than the specified
             // value in the <input> tag.
@@ -224,10 +220,10 @@ if ($action == 'main') {
             // No need to move criterion if new position = old position!
             $crtpos = key($crtformdata->moveherebutton);
             if ($crtformdata->movecrt != $crtpos) {
-                move_criterion($criterions, $crtformdata->movecrt, $crtpos); // TODO Revisar funcion en locallib.php
+                move_criterion($criterions, $crtformdata->movecrt, $crtpos);
             }
             // Nothing I do will seem to reload the form with new data, except for moving away from the page, so...
-            redirect($CFG->wwwroot.'/mod/groupevaluation/criterions.php?id='.$cm->id);
+            redirect($CFG->wwwroot.'/mod/groupevaluation/criterions.php?id='.$cm->id.'#id_managecrt');
             $reload = true;
             $showpopup = false;
         } else if (isset($crtformdata->addsavedbutton)) {
@@ -564,7 +560,7 @@ if ($action == 'main') {
 if ($reload) {
     unset($criterionsform);
     if ($action == 'main') {
-        $criterionsform = new groupevaluation_criterions_form('criterions.php', $movecrt);
+        $criterionsform = new groupevaluation_criterions_form('criterions.php');
         $sdata = clone($groupevaluation);
         $sdata->id = $cm->id;
         if (!empty($criterions)) {// TODO Borrar
@@ -761,8 +757,69 @@ if ($popup && $showpopup) {
   echo '<script type="text/javascript">popupSavedCriterions();</script>';
 }
 
-//TODO borrar (sortable)
+//TODO (sortable)
 echo '<script type="text/javascript" src="'.$CFG->wwwroot.'/mod/groupevaluation/javascript/jquery-1.js"></script>';
 echo '<script type="text/javascript" src="'.$CFG->wwwroot.'/mod/groupevaluation/javascript/jquery-ui.js"></script>';
+echo '<script type="text/javascript">
+        $(document).ready(function(){
+            $(".list").sortable({
+                connectWith: ".list",
+                //handle: ".ui-sortable .qoptcontainer",
+                opacity: 0.5,
+                tolerance: "pointer",
+                //cancel: ".qopts",
+                placeholder: "place_holder_qoptcontainer",
+                helper: function(event, el) {
+                    var myclone = el.clone();
+                    $("body").append(myclone);
+                    return myclone;
+                },
 
+                stop:	function( event, ui ) {
+                  var tagpositions = document.getElementsByClassName("tagposition");
+                  for (i = 0; i < tagpositions.length; i++) {
+                      tagpositions[i].setAttribute("value", i+1);
+                  }
+                  var spanpositions = document.getElementsByClassName("spanposition");
+                  for (i = 0; i < spanpositions.length; i++) {
+                      spanpositions[i].innerHTML = i+1;
+                  }
+                }
+            });
+            $(".qcontainer").sortable({
+                connectWith: ".qcontainer",
+                opacity: 0.5,
+                tolerance: "pointer",
+                placeholder: "place_holder_element",
+                helper: function(event, el) {
+                    var myclone = el.clone();
+                    $("body").append(myclone);
+                    return myclone;
+                },
+
+                stop:	function( event, ui ) {
+                  id = ui.item.attr("id").split("element_")[1];
+                  var newposition = ui.item.index()+1;
+
+                  var input = document.createElement("input");
+                  input.setAttribute("type", "hidden");
+                  input.setAttribute("name", "movecrt");
+                  input.setAttribute("value", id);
+
+                  var movehere = document.createElement("input");
+                  movehere.setAttribute("id", "moveherebutton_"+newposition);
+                  movehere.setAttribute("type", "image");
+                  movehere.setAttribute("name", "moveherebutton["+newposition+"]");
+                  movehere.setAttribute("value", newposition);
+
+                  //append to form
+                  document.getElementById("criterionsform").appendChild(input);
+                  document.getElementById("criterionsform").appendChild(movehere);
+
+                  document.getElementById("moveherebutton_" + newposition).click();
+                }
+            });
+        });
+    </script>';
+//sorteable
 echo $OUTPUT->footer();

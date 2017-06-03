@@ -88,17 +88,26 @@ if (!has_capability('mod/groupevaluation:view', $context)) {
 
 // Print the main part of the page.
 
+
 if (!$survey = $DB->get_record('groupevaluation_surveys', array('id' => $sid))) {
+    echo $OUTPUT->header();
+    echo $OUTPUT->heading(format_string($groupevaluation->name));
     echo '<div class="notifyproblem">'.get_string('notavail', 'groupevaluation').'</div>';
 } else if (!groupevaluation_is_open($groupevaluation->timeopen)) {
+  echo $OUTPUT->header();
+  echo $OUTPUT->heading(format_string($groupevaluation->name));
   if (!$groupevaluation->timeopen) {
     echo '<div class="notifyproblem">'.get_string('notopeningdate', 'groupevaluation').'</div>';
   } else {
     echo '<div class="notifyproblem">'.get_string('notopen', 'groupevaluation', userdate($groupevaluation->timeopen)).'</div>';
   }
 } else if (groupevaluation_is_closed($groupevaluation->timeclose)) {
+  echo $OUTPUT->header();
+  echo $OUTPUT->heading(format_string($groupevaluation->name));
   echo '<div class="notifyproblem">'.get_string('closed', 'groupevaluation', userdate($groupevaluation->timeclose)).'</div>';
 } else if (!user_is_eligible()) {
+  echo $OUTPUT->header();
+  echo $OUTPUT->heading(format_string($groupevaluation->name));
     echo '<div class="notifyproblem">'.get_string('noteligible', 'groupevaluation').'</div>';
 } else if (user_can_take($USER->id, $sid)) {
 
@@ -170,14 +179,14 @@ if (!$survey = $DB->get_record('groupevaluation_surveys', array('id' => $sid))) 
         redirect($CFG->wwwroot.'/mod/groupevaluation/view.php?id='.$cm->id);
       }
   }
-
   echo $OUTPUT->header();
   echo $OUTPUT->heading(format_string($groupevaluation->name));
-
   $completeform->display();
 
 } else {
-    echo ('<div class="notifyproblem">'.get_string("alreadydone", "groupevaluation").'</div>');
+  echo $OUTPUT->header();
+  echo $OUTPUT->heading(format_string($groupevaluation->name));
+    echo '<div class="notifyproblem">'.get_string("alreadydone", "groupevaluation").'</div>';
 }
 
 // Finish the page.

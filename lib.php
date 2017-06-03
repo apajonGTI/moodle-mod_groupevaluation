@@ -503,7 +503,63 @@ function groupevaluation_pluginfile($course, $cm, $context, $filearea, array $ar
 
     require_login($course, true, $cm);
 
-    send_file_not_found();
+    //send_file_not_found();
+
+    // N U E V O //
+    // Check the relevant capabilities - these may vary depending on the filearea being accessed.
+    /*if (!has_capability('mod/groupevaluation:editsurvey', $context)) {
+        return false;
+    }*/
+
+    // Leave this line out if you set the itemid to null in make_pluginfile_url (set $itemid to 0 instead).
+    $itemid = array_shift($args); // The first item in the $args array.
+
+    // Use the itemid to retrieve any relevant data records and perform any security checks to see if the
+    // user really does have access to the file in question.
+
+    // Extract the filename / filepath from the $args array.
+    $filename = array_pop($args); // The last item in the $args array.
+    if (!$args) {
+        $filepath = '/'; // $args is empty => the path is '/'
+    } else {
+        $filepath = '/'.implode('/', $args).'/'; // $args contains elements of the filepath
+    }
+
+    // Retrieve the file from the Files API.
+    $fs = get_file_storage();
+
+
+    /*$extension = '.xml';
+    $filename = "{$base}-{$type}-{$shortname}-{$timestamp}".$extension;
+    $exportfile = "{$CFG->tempdir}/criterionexport/";
+    // Prepare file record object
+    $fileinfo = array(
+        'contextid' => $context->id, // ID of context
+        'component' => 'mod_groupevaluation',     // usually = table name
+        'filearea' => 'export',     // usually = table name
+        'itemid' => 0,               // usually = ID of row in table
+        'filepath' => $exportfile,           // any path beginning and ending in /
+        'filename' => $filename); // any filename
+
+    // Get file
+    $file = $fs->get_file($fileinfo['contextid'], $fileinfo['component'], $fileinfo['filearea'],
+                          $fileinfo['itemid'], $fileinfo['filepath'], $fileinfo['filename']);*/
+
+    $file = $fs->get_file($context->id, 'mod_groupevaluation', $filearea, $itemid, $filepath, $filename);
+    if (!$file) {
+      send_file_not_found();
+    }
+
+    // Get file
+    /*$file = $fs->get_file($fileinfo['contextid'], $fileinfo['component'], $fileinfo['filearea'],
+                          $fileinfo['itemid'], $fileinfo['filepath'], $fileinfo['filename']);*/
+
+    // We can now send the file back to the browser - in this case with a cache lifetime of 1 day and no filtering.
+    // From Moodle 2.3, use send_stored_file instead.
+
+
+    //send_file($file, 86400, 0, $forcedownload, $options);
+    send_stored_file($file, 86400, 0, $forcedownload, $options);
 }
 
 /* Navigation API */
@@ -532,15 +588,63 @@ function groupevaluation_extend_navigation(navigation_node $navref, stdClass $co
  * @param navigation_node $groupevaluationnode groupevaluation administration node
  */
 function groupevaluation_extend_settings_navigation(settings_navigation $settingsnav, navigation_node $groupevaluationnode=null) {
-    // TODO Delete this function and its docblock, or implement it.
+  global $PAGE, $DB, $USER, $CFG;
+
+  $context = $PAGE->cm->context;
+  $cmid = $PAGE->cm->id;
+  $cm = $PAGE->cm;
+  $course = $PAGE->course;
+
+  if (! $groupevaluation = $DB->get_record("groupevaluation", array("id" => $cm->instance))) {
+      print_error('invalidcoursemodule');
+  }
+
+  // We want to add these new nodes after the Edit settings node, and before the
+  // Locally assigned roles node. Of course, both of those are controlled by capabilities.
+  $keys = $groupevaluationnode->get_children_key_list();
+  $beforekey = null;
+  $i = array_search('modedit', $keys);
+  if ($i === false and array_key_exists(0, $keys)) {
+      $beforekey = $keys[0];
+  } else if (array_key_exists($i + 1, $keys)) {
+      $beforekey = $keys[$i + 1];
+  }
+
+  if (has_capability('mod/groupevaluation:editsurvey', $context)) {
+      /*// Advanced settings
+      $url = '/mod/groupevaluation/qsettings.php';
+      $node = navigation_node::create(get_string('advancedsettings'),
+              new moodle_url($url, array('id' => $cmid)),
+              navigation_node::TYPE_SETTING, null, 'advancedsettings',
+              new pix_icon('t/edit', ''));
+      $groupevaluationnode->add_node($node, $beforekey);*/
+
+      // Import
+      $url = '/mod/groupevaluation/import.php';
+      $node = navigation_node::create(get_string('importcriterions', 'groupevaluation'),
+              new moodle_url($url, array('id' => $cmid)),
+              navigation_node::TYPE_SETTING, null, 'import',
+              new pix_icon('i/import', ''));
+      $groupevaluationnode->add_node($node, $beforekey);
+
+      // Export
+      $url = '/mod/groupevaluation/export.php';
+      $node = navigation_node::create(get_string('exportcriterions', 'groupevaluation'),
+              new moodle_url($url, array('id' => $cmid)),
+              navigation_node::TYPE_SETTING, null, 'export',
+              new pix_icon('i/export', ''));
+      $groupevaluationnode->add_node($node, $beforekey);
+  }
+
+
 }
 
 /* API propia */
 
 /**
  * TODO borrar: esto es solo un ejemplo
- * Obtains the automatic completion state for this questionnaire based on the condition
- * in questionnaire settings.
+ * Obtains the automatic completion state for this groupevaluation based on the condition
+ * in groupevaluation settings.
  *
  * @param object $course Course
  * @param object $cm Course-module
@@ -551,13 +655,13 @@ function groupevaluation_extend_settings_navigation(settings_navigation $setting
 function groupevaluation_get_completion_state($course, $cm, $userid, $type) {
     global $CFG, $DB;
 
-    // Get questionnaire details.
+    // Get groupevaluation details.
     $groupevaluation = $DB->get_record('groupevaluation', array('id' => $cm->instance), '*', MUST_EXIST);
 
     // If completion option is enabled, evaluate it and return true/false.
     if ($groupevaluation->completionsubmit) {
         $params = array('userid' => $userid, 'qid' => $groupevaluation->id);
-        return $DB->record_exists('questionnaire_attempts', $params);
+        return $DB->record_exists('groupevaluation_attempts', $params);
     } else {
         // Completion option is not enabled so just return $type.
         return $type;

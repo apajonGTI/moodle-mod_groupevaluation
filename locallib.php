@@ -207,6 +207,35 @@ function groupevaluation_update_viewresults($groupevaluationid) {
     $DB->set_field('groupevaluation', 'viewresults', 1, array('id' => $groupevaluationid));
   }
 }
+function groupevaluation_get_arrow($groupevaluation, $deviation) {
+  global $CFG;
+  $hardlowerdeviation = $groupevaluation->hardlowerdeviation;
+  $hardupperdeviation = $groupevaluation->hardupperdeviation;
+  $softlowerdeviation = $groupevaluation->softlowerdeviation;
+  $softupperdeviation = $groupevaluation->softupperdeviation;
+
+  if ($deviation <= $hardlowerdeviation) {
+    $arrow = 'arrow_red_down.gif';
+    $title = get_string('hardlowerdeviation', 'groupevaluation');
+  } elseif ($deviation <= $softlowerdeviation) {
+    $arrow = 'arrow_yellow_down.gif';
+    $title = get_string('hardlowerdeviation', 'groupevaluation');
+  } elseif ($deviation < $softupperdeviation) {
+    $arrow = 'arrow_yellow_right.gif';
+    $title = get_string('hardlowerdeviation', 'groupevaluation');
+  } elseif ($deviation < $hardupperdeviation) {
+    $arrow = 'arrow_yellow_up.gif';
+    $title = get_string('hardlowerdeviation', 'groupevaluation');
+  } elseif ($deviation >= $hardupperdeviation) {
+    $arrow = 'arrow_green_up.gif';
+    $title = get_string('hardlowerdeviation', 'groupevaluation');
+  }
+
+  $srcarrow = new moodle_url($CFG->wwwroot.'/mod/groupevaluation/pix/'.$arrow);
+  $imgarrow = '<img class="iconsmall" title="'.$title.'" src="'.$srcarrow.'">';
+
+  return $imgarrow;
+}
 
 function groupevaluation_color_code($assessment) {
   if ($assessment != '-') {
