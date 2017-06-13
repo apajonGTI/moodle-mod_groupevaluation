@@ -63,11 +63,11 @@ class backup_groupevaluation_activity_task extends backup_activity_task {
 
         // Link to the list of groupevaluations.
         $search = '/('.$base.'\/mod\/groupevaluation\/index.php\?id\=)([0-9]+)/';
-        $content = preg_replace($search, '$@groupevaluationINDEX*$2@$', $content);
+        $content = preg_replace($search, '$@GROUPEVALUATIONINDEX*$2@$', $content);
 
         // Link to groupevaluation view by moduleid.
         $search = '/('.$base.'\/mod\/groupevaluation\/view.php\?id\=)([0-9]+)/';
-        $content = preg_replace($search, '$@groupevaluationVIEWBYID*$2@$', $content);
+        $content = preg_replace($search, '$@GROUPEVALUATIONVIEWBYID*$2@$', $content);
 
         return $content;
     }

@@ -165,10 +165,15 @@ function groupevaluation_delete_instance($id) {
     }
 
     // Delete any dependent records here.
-    /*$DB->delete_records('groupevaluation', array('id' => $groupevaluation->id));
+    $criterions = $DB->get_records('groupevaluation_criterions', array('groupevaluationid' => $groupevaluation->id));
+    foreach ($criterions as $criterion) {
+      $DB->delete_records('groupevaluation_tags', array('criterionid' => $criterion->id));
+      $DB->delete_records('groupevaluation_assessments', array('criterionid' => $criterion->id));
+    }
 
-    $DB->delete_records('groupevaluation_criterions', array('id' => $groupevaluation->id));
-    $DB->delete_records('groupevaluation_surveys', array('id' => $groupevaluation->id));*/
+    $DB->delete_records('groupevaluation_criterions', array('groupevaluationid' => $groupevaluation->id));
+    $DB->delete_records('groupevaluation_surveys', array('groupevaluationid' => $groupevaluation->id));
+    $DB->delete_records('groupevaluation_grades', array('groupevaluationid' => $groupevaluation->id));
 
     $DB->delete_records('groupevaluation', array('id' => $groupevaluation->id));
 

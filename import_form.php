@@ -38,8 +38,10 @@ class criterion_import_form extends moodleform {
         // The file to import
         $mform->addElement('header', 'importfileupload', get_string('importcriterionsfile', 'groupevaluation'));
 
-        $mform->addElement('static', 'example', get_string('examplefileimport', 'groupevaluation'));
-        $mform->addHelpButton('example', 'examplefileimport', 'groupevaluation');
+        $strfileformat = get_string('fileformat', 'groupevaluation');
+        $strmoodlexml = get_string('moodlexmlformat', 'groupevaluation');
+        $mform->addElement('static', 'fileformat', $strfileformat, $strmoodlexml);
+        $mform->addHelpButton('fileformat', 'moodlexmlformat', 'groupevaluation');
 
 
         $mform->addElement('filepicker', 'newfile', get_string('import'));

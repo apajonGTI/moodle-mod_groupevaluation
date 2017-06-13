@@ -73,11 +73,6 @@ $PAGE->set_heading(format_string($course->fullname));
 echo $OUTPUT->header();
 echo $OUTPUT->heading(format_string($groupevaluation->name));
 
-// Print the main part of the page.
-if ($groupevaluation->intro) {
-    echo $OUTPUT->box(format_module_intro('groupevaluation', $groupevaluation, $cm->id), 'generalbox', 'intro');
-}
-
 //echo $OUTPUT->box_start('generalbox boxaligncenter boxwidthwide');
 
 $currentgroupid = groups_get_activity_group($cm);
@@ -89,16 +84,19 @@ if (!groups_is_member($currentgroupid, $USER->id)) {
 $select = 'groupevaluationid = '.$groupevaluation->id.' AND status = '.groupevaluation_DONE;
 $donesurveys = $DB->get_records_select('groupevaluation_surveys', $select);
 
-if (has_capability('mod/groupevaluation:readresponses', $context)) {
-    echo "<div class=\"reportlink\"><a href=\"report.php?id=$cm->id\">".get_string("viewreport", "groupevaluation", count($donesurveys))."</a></div>";
-} else if (!$cm->visible) {
-    notice(get_string("activityiscurrentlyhidden"));
-} else {
-  echo "<div class=\"reportlink\"><a href=\"results.php?id=$cm->id\">".
-        get_string("viewresults", "groupevaluation")."</a></div>";
-}
+
 //***************************************************
 if (has_capability('mod/groupevaluation:editsurvey', $context)) {
+
+  if (has_capability('mod/groupevaluation:readresponses', $context)) {
+    echo "<div class=\"reportlink\"><a href=\"report.php?id=$cm->id\">".get_string("viewreport", "groupevaluation", count($donesurveys))."</a></div>";
+  }
+
+  echo "<div class=\"infobox\">";
+  if ($groupevaluation->intro) {
+    echo "<div class=\"descriptionbox\">".format_module_intro('groupevaluation', $groupevaluation, $cm->id).'</div>';
+  }
+
   // STATE OF THE ACTIVITY //
   $href = $CFG->wwwroot.htmlspecialchars('/course/modedit.php?update='.$cm->id.'&return=1#id_timing');
   $edithtml = '<a href="'.$href.'">'.get_string('edit').'</a>';
@@ -117,60 +115,88 @@ if (has_capability('mod/groupevaluation:editsurvey', $context)) {
   } else {
     echo '<div>'.get_string('notcloseduntil', 'groupevaluation', userdate($groupevaluation->timeclose)).' '.$edithtml.'</div>';
   }
+  echo "</div>"; // end infobox
   echo '<div style="height: 20px"></div>';
 
-  // LINKS //
+  // BUTTONS //
   $table = 'groupevaluation_criterions';
   $select = "groupevaluationid = $groupevaluation->id"; //is put into the where clause
   $result = $DB->get_records_select($table,$select);
   if (!$result) {
     echo '<p>'.get_string('nosurvey', 'groupevaluation').'</p>';
-    echo '<a href="'.$CFG->wwwroot.htmlspecialchars('/mod/groupevaluation/criterions.php?'.'id='.$cm->id).'">'.'<strong>'.get_string("createsurvey", "groupevaluation").'</strong></a>';
+    $href = $CFG->wwwroot.htmlspecialchars('/mod/groupevaluation/criterions.php?'.'id='.$cm->id);
+    echo '<a href="'.$href.'" class="btn btn-default btn-lg" role="button">'.get_string("createsurvey", "groupevaluation").'</a>';
   } else {
-    echo '<a href="'.$CFG->wwwroot.htmlspecialchars('/mod/groupevaluation/groups.php?'.'id='.$cm->id).'">'.'<strong>'.get_string("setgroups", "groupevaluation").'</strong></a><br/>';
-    echo '<a href="'.$CFG->wwwroot.htmlspecialchars('/mod/groupevaluation/criterions.php?'.'id='.$cm->id).'">'.'<strong>'.get_string("editsurvey", "groupevaluation").'</strong></a>';
+    $href = $CFG->wwwroot.htmlspecialchars('/mod/groupevaluation/criterions.php?'.'id='.$cm->id);
+    echo '<a href="'.$href.'" class="btn btn-default btn-lg" role="button">'.get_string("editsurvey", "groupevaluation").'</a><br/>';
+    echo '<div style="height: 10px"></div>';
+    $href = $CFG->wwwroot.htmlspecialchars('/mod/groupevaluation/groups.php?'.'id='.$cm->id);
+    echo '<a href="'.$href.'" class="btn btn-default btn-lg" role="button">'.get_string("setgroups", "groupevaluation").'</a>';
   }
 } else { // Unprivileged user
+
+  if (groupevaluation_is_closed($groupevaluation->timeclose)) {
+    echo "<div class=\"reportlink\"><a href=\"results.php?id=$cm->id\">".get_string("viewresults", "groupevaluation")."</a></div>";
+  }
+  if ($groupevaluation->intro) {
+      echo $OUTPUT->box(format_module_intro('groupevaluation', $groupevaluation, $cm->id), 'generalbox', 'intro');
+  }
+
   // EALUATIONS OF THE STUDENT //
   $select = 'groupevaluationid = "'.$groupevaluation->id.'" AND authorid = "'.$USER->id.'"';
   $surveys = $DB->get_records_select('groupevaluation_surveys', $select);
   $groupids = array ();
 
-  foreach ($surveys as $survey) {
-    $surveyid = $survey->id;
-    $status = $survey->status;
-    $href = $CFG->wwwroot.htmlspecialchars('/mod/groupevaluation/complete.php?id='.$cm->id.'&sid='.$surveyid);
-
-    $group = $DB->get_record('groups',array('id'=>$survey->groupid));
-    $user = $DB->get_record('user',array('id'=>$survey->userid));
-
-    if (!in_array($group->id, $groupids)) {
-      $groupids[] = $group->id;
-      echo $OUTPUT->heading(get_string("group",'groupevaluation'), 3, 'helptitle', 'uniqueid');
-      echo $OUTPUT->heading($group->name, 5, 'helptitle', 'uniqueid');
-
-      echo $OUTPUT->heading(get_string("evaluations",'groupevaluation'), 3, 'helptitle', 'uniqueid');
-    }
-
-    if ($survey->userid == $survey->authorid) {
-      $name = get_string('selfevaluation', 'groupevaluation');
+  if (!groupevaluation_is_open($groupevaluation->timeopen)) {
+    if (!$groupevaluation->timeopen) {
+      echo '<div class="notifyproblem">'.get_string('notopeningdate', 'groupevaluation').'</div>';
     } else {
-      $name = fullname($user);
+      echo '<div class="notifyproblem">'.get_string('notopen', 'groupevaluation', userdate($groupevaluation->timeopen)).'</div>';
     }
-    $profileurl = $CFG->wwwroot.'/user/view.php?id='.$user->id.'&amp;course='.$course->id;
-    $profilelink = '<a href="'.$profileurl.'">'.$name.'</a>';
-    echo $OUTPUT->heading($profilelink, 5, 'helptitle', 'uniqueid');
+  } else if (groupevaluation_is_closed($groupevaluation->timeclose)) {
+    echo '<div class="notifyproblem">'.get_string('closed', 'groupevaluation', userdate($groupevaluation->timeclose)).'</div>';
+  } else {
 
-    if ($status == groupevaluation_INCOMPLETE) {
-      echo '<div><a href="'.$href.'" class="btn btn-default btn-lg" role="button">'.get_string('evaluate', 'groupevaluation').'</a></div>';
-    } elseif ($status == groupevaluation_COMPLETE) {
-      echo '<div>';
-      echo '<a href="'.$href.'" class="btn btn-default btn-lg" role="button">'.get_string('evaluate', 'groupevaluation').'</a>';
-      echo '<span style="color:red;"> '.get_string('inprogress', 'groupevaluation').'</span>';
-      echo '<span> ('.get_string('notsubmitted', 'groupevaluation').')</span>';
-      echo '</div>';
-    } elseif ($status == groupevaluation_DONE) {
-      echo '<div><p>'.get_string('evaluated', 'groupevaluation').'</p></div>';
+    if (!$surveys) {
+      echo $OUTPUT->notification(get_string('nonparticipatinguser', 'groupevaluation'));
+    }
+
+    foreach ($surveys as $survey) {
+      $surveyid = $survey->id;
+      $status = $survey->status;
+      $href = $CFG->wwwroot.htmlspecialchars('/mod/groupevaluation/complete.php?id='.$cm->id.'&sid='.$surveyid);
+
+      $group = $DB->get_record('groups',array('id'=>$survey->groupid));
+      $user = $DB->get_record('user',array('id'=>$survey->userid));
+
+      if (!in_array($group->id, $groupids)) {
+        $groupids[] = $group->id;
+        echo $OUTPUT->heading(get_string("group",'groupevaluation'), 3, 'helptitle', 'uniqueid');
+        echo $OUTPUT->heading($group->name, 5, 'helptitle', 'uniqueid');
+
+        echo $OUTPUT->heading(get_string("evaluations",'groupevaluation'), 3, 'helptitle', 'uniqueid');
+      }
+
+      if ($survey->userid == $survey->authorid) {
+        $name = get_string('selfevaluation', 'groupevaluation');
+      } else {
+        $name = fullname($user);
+      }
+      $profileurl = $CFG->wwwroot.'/user/view.php?id='.$user->id.'&amp;course='.$course->id;
+      $profilelink = '<a href="'.$profileurl.'">'.$name.'</a>';
+      echo $OUTPUT->heading($profilelink, 5, 'helptitle', 'uniqueid');
+
+      if ($status == groupevaluation_INCOMPLETE) {
+        echo '<div><a href="'.$href.'" class="btn btn-default btn-lg" role="button">'.get_string('evaluate', 'groupevaluation').'</a></div>';
+      } elseif ($status == groupevaluation_COMPLETE) {
+        echo '<div>';
+        echo '<a href="'.$href.'" class="btn btn-default btn-lg" role="button">'.get_string('evaluate', 'groupevaluation').'</a>';
+        echo '<span style="color:red;"> '.get_string('inprogress', 'groupevaluation').'</span>';
+        echo '<span> ('.get_string('notsubmitted', 'groupevaluation').')</span>';
+        echo '</div>';
+      } elseif ($status == groupevaluation_DONE) {
+        echo '<div><p>'.get_string('evaluated', 'groupevaluation').'</p></div>';
+      }
     }
   }
 }

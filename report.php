@@ -138,10 +138,33 @@ echo $OUTPUT->box_start('left-align');
 echo '<form class="mform" action="report.php" method="post" id="groupevaluation_reportform">';
 
 echo $OUTPUT->container_start('view_options', 'view_options');
-$options = array( 'participants' => get_string('participants','groupevaluation'),
-                  'crossevaluations' => get_string('crossevaluations','groupevaluation'),
-                  'criterions' => get_string('criterions','groupevaluation'));
-echo html_writer::select($options, 'viewmode', $viewmode, false, array('id' => 'viewmode', 'onchange' => 'viewSubmit("groupevaluation_reportform", false)'));
+
+$strparticipants = get_string('participants','groupevaluation');
+$strcrossevaluations = get_string('crossevaluations','groupevaluation');
+$strcriterions = get_string('criterions','groupevaluation');
+$titleparticipants = get_string('titleparticipants','groupevaluation');
+$titlecrossevaluations = get_string('titlecrossevaluations','groupevaluation');
+$titlecriterions = get_string('titlecriterions','groupevaluation');
+
+$selparticipants = '';
+$selcrossevaluations = '';
+$selcriterions = '';
+if ($viewmode == 'participants') {
+  $selparticipants = 'selected="selected"';
+} else if ($viewmode == 'crossevaluations') {
+  $selcrossevaluations = 'selected="selected"';
+} else if ($viewmode == 'criterions') {
+  $selcriterions = 'selected="selected"';
+}
+
+$onchange = 'onchange="viewSubmit(&quot;groupevaluation_reportform&quot;, false)"';
+$htmlselect = '<select id="viewmode" '.$onchange.' class="select menuviewmode" name="viewmode">';
+$htmlselect .= '<option title="'.$titleparticipants.'" '.$selparticipants.' value="participants">'.$strparticipants.'</option>';
+$htmlselect .= '<option title="'.$titlecrossevaluations.'" '.$selcrossevaluations.' value="crossevaluations">'.$strcrossevaluations.'</option>';
+$htmlselect .= '<option title="'.$titlecriterions.'" '.$selcriterions.' value="criterions">'.$strcriterions.'</option>';
+$htmlselect .= '</select>';
+
+echo $htmlselect;
 echo $OUTPUT->container_end();
 
 if (($viewmode == 'crossevaluations') || ($viewmode == 'criterions')) {
@@ -180,6 +203,7 @@ if (!$participants) {
   // Preparing the table for output.
   $baseurl = new moodle_url('/mod/groupevaluation/report.php');
   $baseurl->params(array('id' => $cm->id));
+  $colorscale = array ();
 
   foreach ($criterions as $criterion) {
     if ($viewmode == 'criterions') {
@@ -303,8 +327,6 @@ if (!$participants) {
         $startpage = $table->get_page_start();
         $pagecount = $table->get_page_size();
     }
-
-    $colorscale = array ();
 
     // For paging I use array_slice().
     if ($startpage !== false AND $pagecount !== false) {

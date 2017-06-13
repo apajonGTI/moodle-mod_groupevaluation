@@ -76,6 +76,16 @@ if (($formdata = data_submitted()) AND !confirm_sesskey()) {
 
 require_capability('mod/groupevaluation:editsurvey', $context);
 
+// Print the page header.
+$PAGE->navbar->add(get_string('groups', 'groupevaluation'));
+$PAGE->set_heading(format_string($course->fullname));
+$PAGE->set_title(format_string($groupevaluation->name));
+
+echo $OUTPUT->header();
+echo $OUTPUT->heading(format_string($groupevaluation->name));
+
+require('tabs.php');
+
 $good = false;
 if (($addsubmit && is_array($addgroup)) || ($removesubmit && is_array($removegroup))) {
     $good = true;
@@ -96,21 +106,15 @@ if (($addsubmit && is_array($addgroup)) || ($removesubmit && is_array($removegro
     }
 
     // Updated groups message
+    echo '<div class="warning-panel">';
     if ($good) {
         echo $OUTPUT->container(get_string('updatedgroups', 'groupevaluation'), 'important', 'notice');
     } else {
         echo $OUTPUT->notification(get_string('updatedgroupsfailed', 'groupevaluation'));
     }
-
-    /*if ($good) {
-        //$msg = $OUTPUT->heading(get_string('updatedgroups', 'groupevaluation'));
-    } else {
-        $msg = $OUTPUT->heading(get_string('updatedgroupsfailed', 'groupevaluation'));
-    }
-    $url = new moodle_url('/mod/groupevaluation/view.php', array('id' => $cm->id));
-    redirect($url, $msg, 4);
-    exit;*/
+    echo '</div>';
 }
+
 // GET GROUPS //
 $groups = $DB->get_records("groups", array("courseid" => $cm->course));
 $countgroups = count($groups);
@@ -118,24 +122,10 @@ $query = 'SELECT DISTINCT groupid FROM mdl_groupevaluation_surveys WHERE groupev
 $groupsadded = $DB->get_records_sql($query, array($groupevaluation->id));
 $countgroupsadded = count($groupsadded);
 
-// Get the responses of given user.
-// Print the page header.
-$PAGE->navbar->add(get_string('groups', 'groupevaluation'));
-$PAGE->set_heading(format_string($course->fullname));
-$PAGE->set_title(format_string($groupevaluation->name));
-
-echo $OUTPUT->header();
-echo $OUTPUT->heading(format_string($groupevaluation->name));
-
-require('tabs.php');
-
 $usedgroupid = false;
 $sort = '';
 $startpage = false;
 $pagecount = false;
-
-// Print the main part of the page.
-// Print the users with no responses
 
 // Preparing the table for output.
 $baseurl = new moodle_url('/mod/groupevaluation/groups.php');
@@ -199,7 +189,6 @@ if ($showall) {
 echo '<div class="clearer"></div>';
 echo $OUTPUT->box_start('left-align');
 
-$groups = array();
 if (!$groups) {
     echo $OUTPUT->notification(get_string('noexistinggroups', 'groupevaluation'));
     $hrefgroups = $CFG->wwwroot.htmlspecialchars('/group/index.php?id='.$course->id);
@@ -300,7 +289,16 @@ echo $OUTPUT->box_end();
 // Finish the page.
 //echo '<script type="text/javascript" src="'.$CFG->wwwroot.'/mod/groupevaluation/module.js" type="text/javascript"></script>';
 
+// Make disappear update message (if it exists)
+
+
 echo $OUTPUT->footer();
+
+echo '<script type="text/javascript" src="'.$CFG->wwwroot.'/mod/groupevaluation/javascript/jquery-1.js"></script>';
+echo '<script type="text/javascript" src="'.$CFG->wwwroot.'/mod/groupevaluation/javascript/jquery-ui.js"></script>';
+echo '<script type="text/javascript">';
+echo '$(document).ready(function(){$(".warning-panel").delay(3000).hide(1);';
+echo '});</script>';
 
 // Log this groupevaluation show non-respondents action.
 /*$context = context_module::instance($groupevaluation->cm->id);

@@ -232,7 +232,7 @@ function groupevaluation_get_arrow($groupevaluation, $deviation) {
   }
 
   $srcarrow = new moodle_url($CFG->wwwroot.'/mod/groupevaluation/pix/'.$arrow);
-  $imgarrow = '<img class="iconsmall" title="'.$title.'" src="'.$srcarrow.'">';
+  $imgarrow = '<img title="'.$title.'" src="'.$srcarrow.'">';
 
   return $imgarrow;
 }

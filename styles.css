@@ -1,6 +1,49 @@
 /** Question editing **/
 
 /* !important is needed in moodle 2.6 to override the display block when window width is reduced. */
+.warning-panel {
+    color: #000 !important;
+    background-color: #ffeb3b !important;
+    margin-top: 10px;
+    margin-bottom: 10px;
+    padding: 5px;
+    position: relative;
+    border: 0 solid;
+    border-radius: 5px 5px 5px 5px;
+    -moz-border-radius: 5px 5px 5px 5px;
+    -webkit-border-radius: 5px 5px 5px 5px;
+    opacity: 0.8;
+}
+
+.warning-panel p {
+    margin: 10px 0 0 0;
+}
+
+.warning-button {
+    color: #000;
+    background-color: rgb(255, 235, 59);
+    font-size: 18px;
+    position: absolute;
+    right: 0px;
+    top: 0px;
+    border: medium none;
+    display: inline-block;
+    outline: 0px none;
+    padding: 4px 10px;
+    vertical-align: middle;
+    overflow: hidden;
+    text-decoration: none;
+    text-align: ;
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: Verdana,sans-serif;
+    line-height: 1.5;
+}
+
+#page-mod-groupevaluation-criterions .warning-button:hover, .warning-button:focus {
+    background-color: #ccc !important;
+}
+
 #page-mod-groupevaluation-criterions .qcontainer .fitemtitle,
 #page-mod-groupevaluation-criterions #id_criterionhdr .fitemtitle {
     display: none!important;
@@ -129,6 +172,24 @@ p.posanswer {
     margin-bottom: 6px;
     padding-top: 6px;
     border-bottom: 1px dashed gray;
+}
+
+#page-mod-groupevaluation-view .infobox {
+    padding: 5px;
+    border: 1px solid rgb(204, 204, 204);
+    margin-top: 5px;
+    border-radius: 5px 5px 5px 5px;
+    -moz-border-radius: 5px 5px 5px 5px;
+    -webkit-border-radius: 5px 5px 5px 5px;
+}
+#page-mod-groupevaluation-view .descriptionbox {
+    background-color: rgb(245, 245, 245);
+    padding: 5px;
+    margin-bottom: 5px;
+    border-radius: 5px 5px 5px 5px;
+    -moz-border-radius: 5px 5px 5px 5px;
+    -webkit-border-radius: 5px 5px 5px 5px;
+    border: 0px solid rgb(245, 245, 245);
 }
 
 #page-mod-groupevaluation-complete .message,
@@ -597,11 +658,12 @@ div.qcontainer .crtname {
 /* The actual popup */
 .popup .addpopup {
     visibility: hidden;
-    width: 200px;
+    width: max-content;
+    width: -moz-max-content;
     color: #fff;
     text-align: left;
     border-radius: 6px;
-    padding: 8px 0;
+    padding: 5px;
     position: absolute;
     z-index: 1;
     bottom: 125%;

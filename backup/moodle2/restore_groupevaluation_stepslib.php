@@ -43,6 +43,10 @@ class restore_groupevaluation_activity_structure_step extends restore_activity_s
         $paths = array();
         $paths[] = new restore_path_element('groupevaluation', '/activity/groupevaluation');
 
+        $paths[] = new restore_path_element('groupevaluation_surveys', '/activity/groupevaluation/surveys/survey');
+        $paths[] = new restore_path_element('groupevaluation_criterions', '/activity/groupevaluation/criterions/criterion');
+        $paths[] = new restore_path_element('groupevaluation_tags', '/activity/groupevaluation/criterions/criterion/tags/tag');
+
         // Return the paths wrapped into standard activity structure.
         return $this->prepare_activity_structure($paths);
     }
@@ -58,6 +62,8 @@ class restore_groupevaluation_activity_structure_step extends restore_activity_s
         $data = (object)$data;
         $oldid = $data->id;
         $data->course = $this->get_courseid();
+        $data->timeopen = 0;
+        $data->timeclose = 0;
 
         if (empty($data->timecreated)) {
             $data->timecreated = time();
@@ -75,6 +81,52 @@ class restore_groupevaluation_activity_structure_step extends restore_activity_s
         // Create the groupevaluation instance.
         $newitemid = $DB->insert_record('groupevaluation', $data);
         $this->apply_activity_instance($newitemid);
+    }
+
+    protected function process_groupevaluation_surveys($data) {
+        global $DB;
+
+        $data = (object)$data;
+        $oldid = $data->id;
+        $data->groupevaluationid = $this->get_new_parentid('groupevaluation');
+        $data->status = 0;
+
+        if (empty($data->timecreated)) {
+            $data->timecreated = time();
+        }
+
+        // Insert the groupevaluation_survey record.
+        $newitemid = $DB->insert_record('groupevaluation_surveys', $data);
+        $this->set_mapping('groupevaluation_surveys', $oldid, $newitemid, true);
+
+    }
+
+    protected function process_groupevaluation_criterions($data) {
+        global $DB;
+
+        $data = (object)$data;
+        $oldid = $data->id;
+        $data->groupevaluationid = $this->get_new_parentid('groupevaluation');
+
+        if (empty($data->timecreated)) {
+            $data->timecreated = time();
+        }
+
+        // Insert the groupevaluation_question record.
+        $newitemid = $DB->insert_record('groupevaluation_criterions', $data);
+        $this->set_mapping('groupevaluation_criterions', $oldid, $newitemid, true);
+    }
+
+    protected function process_groupevaluation_tags($data) {
+        global $DB;
+
+        $data = (object)$data;
+        $oldid = $data->id;
+        $data->criterionid = $this->get_new_parentid('groupevaluation_criterions');
+
+        // Insert the groupevaluation_tags record.
+        $newitemid = $DB->insert_record('groupevaluation_tags', $data);
+        $this->set_mapping('groupevaluation_tags', $oldid, $newitemid, true);
     }
 
     /**

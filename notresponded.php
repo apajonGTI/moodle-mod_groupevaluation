@@ -136,6 +136,7 @@ $PAGE->navbar->add(get_string('notresponded', 'groupevaluation'));
 $PAGE->set_heading(format_string($course->fullname));
 $PAGE->set_title(format_string($groupevaluation->name));
 echo $OUTPUT->header();
+echo $OUTPUT->heading(format_string($groupevaluation->name));
 
 require('tabs.php');
 

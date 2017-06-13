@@ -121,19 +121,21 @@ echo $OUTPUT->heading_with_help($strimportcriterions, 'importcriterions', 'group
 $import_form->display();
 echo $OUTPUT->footer();
 
-function save_criterions($criterions){
+function save_criterions($xml) {
   global $DB, $USER;
-  //$criterions = new SimpleXMLElement($xml);
   $timemodified = time();
   $good = true;
 
-  foreach ($criterions->criterion as $criterion) {
-    echo $criterion->name.' (Text: '.$criterion->text.')';
+  if (check_well_formed($xml) == false) {
+    return false;
+  }
+
+  foreach ($xml->question as $criterion) {
 
     // Save criterion
     $criterionrecord = new stdClass();
-    $criterionrecord->name = $criterion->name->__toString();
-    $criterionrecord->text = $criterion->text->__toString();
+    $criterionrecord->name = $criterion->name->text->__toString();
+    $criterionrecord->text = $criterion->questiontext->text->__toString();
     $criterionrecord->saved = 1;
     $criterionrecord->timecreated = $timemodified;
     $criterionrecord->createdby = $USER->id;
@@ -142,23 +144,51 @@ function save_criterions($criterions){
       $good = false;
     }
 
-    foreach ($criterion->answers->answer as $answer) {
-      echo '<br/>'.$answer->position.' - '.$answer->text.' ('.$answer->value.'%)';
+    $i = 1;
+    foreach ($criterion->answer as $answer) {
 
       // Save possible answers for this criterion
       $tagrecord = new stdClass();
       $tagrecord->criterionid = $savedcrtid;
       //SimpleXMLElement->__toString
       $tagrecord->text = $answer->text->__toString();
-      $tagrecord->value = $answer->value->__toString();
-      $tagrecord->position = $answer->position->__toString();
+      $tagrecord->value = $answer->attributes()->fraction->__toString();
+      $tagrecord->position = $i;
       $tagrecord->timemodified = $timemodified;
 
       if (!$resulttag = $DB->insert_record('groupevaluation_tags', $tagrecord)) {
         $good = false;
       }
+      $i++;
     }
-    echo '<br/><br/>';
   }
   return $good;
+}
+
+function check_well_formed($xml) {
+  $wellformed = true;
+
+  if (!isset($xml->question)) {
+    return false;
+  }
+
+  foreach ($xml->question as $criterion) {
+
+    if (!isset($criterion->name) || !isset($criterion->questiontext)) {
+      return false;
+    }
+    if (!isset($criterion->name->text) || !isset($criterion->questiontext->text)) {
+      return false;
+    }
+
+    if (!isset($criterion->answer)) {
+      return false;
+    }
+    foreach ($criterion->answer as $answer) {
+      if (!isset($answer->text) || !isset($answer->attributes()->fraction)) {
+        return false;
+      }
+    }
+  }
+  return $wellformed;
 }

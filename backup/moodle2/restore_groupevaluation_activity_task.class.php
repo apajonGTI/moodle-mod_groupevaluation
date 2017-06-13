@@ -73,8 +73,8 @@ class restore_groupevaluation_activity_task extends restore_activity_task {
     static public function define_decode_rules() {
         $rules = array();
 
-        $rules[] = new restore_decode_rule('groupevaluationVIEWBYID', '/mod/groupevaluation/view.php?id=$1', 'course_module');
-        $rules[] = new restore_decode_rule('groupevaluationINDEX', '/mod/groupevaluation/index.php?id=$1', 'course');
+        $rules[] = new restore_decode_rule('GROUPEVALUATIONVIEWBYID', '/mod/groupevaluation/view.php?id=$1', 'course_module');
+        $rules[] = new restore_decode_rule('GROUPEVALUATIONINDEX', '/mod/groupevaluation/index.php?id=$1', 'course');
 
         return $rules;
 

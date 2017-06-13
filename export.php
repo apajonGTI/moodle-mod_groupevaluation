@@ -73,7 +73,11 @@ echo $OUTPUT->header();
 if ($from_form = $export_form->get_data()) {
 
     $type = $from_form->type;
-    $language = $from_form->language;
+    if (isset($from_form->language)) {
+      $language = $from_form->language;
+    } else {
+      $language = current_language();
+    }
 
     $base = clean_filename(get_string('criterions', 'groupevaluation'));
     $dateformat = str_replace(' ', '_', get_string('exportnameformat', 'groupevaluation'));
@@ -101,7 +105,7 @@ if ($from_form = $export_form->get_data()) {
         'filename' => $filename); // any filename
 
     // Create export file
-    $fs->create_file_from_string($fileinfo, generate_xml($type, $language));
+    $fs->create_file_from_string($fileinfo, generate_xml($type, $language, $groupevaluation));
 
     $export_url = moodle_url::make_pluginfile_url($fileinfo['contextid'], $fileinfo['component'],
       $fileinfo['filearea'], $fileinfo['itemid'], $fileinfo['filepath'], $fileinfo['filename'], true);
@@ -128,6 +132,19 @@ if ($from_form = $export_form->get_data()) {
 /// Display export form
 echo $OUTPUT->heading_with_help($strexportcriterions, 'exportcriterions', 'groupevaluation');
 $export_form->display();
+
+echo '<script type="text/javascript">';
+echo 'function selectTypeChanged() {
+        if (document.getElementById("id_type").value == "default" ||
+            document.getElementById("id_type").value == "all") {
+          document.getElementById("id_select_language").setAttribute("style", "visibility:visible");
+        } else {
+          document.getElementById("id_select_language").setAttribute("style", "visibility:hidden");
+        }
+      }';
+echo '</script>';
+
+
 echo $OUTPUT->footer();
 
 /*
@@ -135,43 +152,47 @@ echo $OUTPUT->footer();
 *
 */
 
-function generate_xml($type, $language) { // groupevaluation - saved - default - all
+function generate_xml($type, $language, $groupevaluation) { // groupevaluation - saved - default - all
+  global $DB;
+
   if ($type == 'groupevaluation') {
     $select = "groupevaluationid = $groupevaluation->id";
   } else if ($type == 'saved') {
-    $select = "groupevaluationid IS NULL AND saved = 1";
+    $select = "groupevaluationid IS NULL AND saved = 1 AND defaultcriterion = 0";
   } else if ($type == 'default') {
-    $select = "groupevaluationid IS NULL AND saved = 1 AND defaultcriterion = 1 AND languagecode = $language";
+    $select = 'groupevaluationid IS NULL AND saved = 1 AND defaultcriterion = 1 AND languagecode = "'.$language.'"';
   } else if ($type == 'all') {
     $select = "(groupevaluationid = $groupevaluation->id) OR ";
-    $select = "(groupevaluationid IS NULL AND (saved = 1 OR (defaultcriterion = 1 AND languagecode = $language))";
+    $select .= '(groupevaluationid IS NULL AND saved = 1 AND defaultcriterion = 0) OR ';
+    $select .= '(groupevaluationid IS NULL AND saved = 1 AND defaultcriterion = 1 AND languagecode = "'.$language.'")';
 
   }
   $criterions = $DB->get_records_select('groupevaluation_criterions', $select, null);
 
-  $xml = '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
-  $xml .= '<criterions>' . "\n";
+  $xml = '<?xml version="1.0" ?>' . "\n";
+  $xml .= '<quiz>' . "\n";
 
   foreach ($criterions as $criterion) {
-    $xml .= '  <criterion>' . "\n";
-    $xml .= '    <name>' . $criterion->name . '</name>' . "\n";
-    $xml .= '    <text>' . $criterion->text . '</text>' . "\n";
-    $xml .= '    <answers>' . "\n";
+    $xml .= '  <question>' . "\n";
+    $xml .= '    <name>' . "\n";
+    $xml .= '      <text>' . $criterion->name . '</text>' . "\n";
+    $xml .= '    </name>' . "\n";
+
+    $xml .= '    <questiontext>' . "\n";
+    $xml .= '      <text><![CDATA[' . $criterion->text . ']]></text>' . "\n";
+    $xml .= '    </questiontext>' . "\n";
 
     $tags = $DB->get_records_select('groupevaluation_tags', 'criterionid = '.$criterion->id, null, 'position');
     foreach ($tags as $tag) {
-      $xml .= '      <answer>' . "\n";
-      $xml .= '        <text>' . $tag->text . '</text>' . "\n";
-      $xml .= '        <value>' . $tag->value . '</value>' . "\n";
-      $xml .= '        <position>' . $tag->position . '</position>' . "\n";
+      $xml .= '      <answer fraction="' . $tag->value . '"' . ">\n";
+      $xml .= '        <text><![CDATA[' . $tag->text . ']]></text>' . "\n";
       $xml .= '      </answer>' . "\n";
     }
 
-    $xml .= '    </answers>' . "\n";
-    $xml .= '  </criterion>' . "\n";
+    $xml .= '  </question>' . "\n";
   }
 
-  $xml .= '</criterions>' . "\n";
+  $xml .= '</quiz>' . "\n";
 
   return $xml;
 }

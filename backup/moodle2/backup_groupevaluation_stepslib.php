@@ -41,18 +41,49 @@ class backup_groupevaluation_activity_structure_step extends backup_activity_str
      * @return backup_nested_element
      */
     protected function define_structure() {
+        global $DB;
 
         // Get know if we are including userinfo.
         $userinfo = $this->get_setting_value('userinfo');
 
         // Define the root element describing the groupevaluation instance.
         $groupevaluation = new backup_nested_element('groupevaluation', array('id'), array(
-            'name', 'intro', 'introformat', 'grade'));
+            'course', 'name', 'intro', 'introformat', 'timecreated', 'timemodified', 'timeopen',
+            'timeclose', 'grade', 'hardlowerdeviation', 'hardupperdeviation', 'softlowerdeviation',
+            'softupperdeviation', 'viewaverage', 'viewselfevaluation', 'viewdeviation', 'viewmaximum',
+            'viewminimum', 'viewgrade', 'viewweight', 'viewanswers', 'viewresults'));
 
-        // If we had more elements, we would build the tree here.
+
+        // Define each element separated.
+        $surveys = new backup_nested_element('surveys');
+        $survey = new backup_nested_element('survey', array('id'), array(
+            'authorid', 'userid', 'groupid', 'groupevaluationid', 'submitted', 'timemodified', 'status', 'mailed'));
+
+        $criterions = new backup_nested_element('criterions');
+        $criterion = new backup_nested_element('criterion', array('id'), array(
+            'groupevaluationid', 'name', 'text', 'textformat', 'weight', 'saved', 'defaultcriterion', 'languagecode',
+            'timemodified', 'createdby', 'modifiedby', 'special', 'position', 'required'));
+
+        $tags = new backup_nested_element('tags');
+        $tag = new backup_nested_element('tag', array('id'), array(
+            'criterionid', 'text', 'value', 'timemodified', 'position'));
+
+        // Build the tree.
+        $groupevaluation->add_child($surveys);
+        $surveys->add_child($survey);
+
+        $groupevaluation->add_child($criterions);
+        $criterions->add_child($criterion);
+
+        $criterion->add_child($tags);
+        $tags->add_child($tag);
 
         // Define data sources.
         $groupevaluation->set_source_table('groupevaluation', array('id' => backup::VAR_ACTIVITYID));
+
+        $survey->set_source_table('groupevaluation_surveys', array('groupevaluationid' => '../../id'));
+        $criterion->set_source_table('groupevaluation_criterions', array('groupevaluationid' => '../../id'));
+        $tag->set_source_table('groupevaluation_tags', array('criterionid' => '../../id'));
 
         // If we were referring to other tables, we would annotate the relation
         // with the element's annotate_ids() method.

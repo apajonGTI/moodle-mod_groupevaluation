@@ -245,7 +245,7 @@ if (!$isclosed && !has_capability('mod/groupevaluation:readresponses', $context)
       $conditions = array('userid' => $userid, 'groupevaluationid' => $groupevaluation->id);
       $usergrade = '- %';
       if ($grade = $DB->get_record('groupevaluation_grades', $conditions)) {
-        $usergrade = $grade->grade.'%';
+        $usergrade = round($grade->grade, 2).'%';
       }
       echo '<div style="font-weight: bold;">'.get_string('grade', 'groupevaluation').': '.'<span class="grade">'.$usergrade.'</span></div>';
     }

@@ -42,11 +42,17 @@ class criterion_export_form extends moodleform {
         // Select criteria
         $mform->addElement('header', 'general', get_string('general', 'form'));
 
+        $strfileformat = get_string('fileformat', 'groupevaluation');
+        $strmoodlexml = get_string('moodlexmlformat', 'groupevaluation');
+        $mform->addElement('static', 'fileformat', $strfileformat, $strmoodlexml);
+        $mform->addHelpButton('fileformat', 'moodlexmlformat', 'groupevaluation');
+        
         $arrayOfOptions = array('groupevaluation' => get_string('thisgroupevaluationcriterions', 'groupevaluation'),
                                 'saved' => get_string('savedcriterions', 'groupevaluation'),
                                 'default' => get_string('defaultcriterions', 'groupevaluation'),
                                 'all' => get_string('allcriterions', 'groupevaluation'));
-        $mform->addElement('select', 'type', get_string('exportcriterions', 'groupevaluation'), $arrayOfOptions);
+        $attributes = array('onchange' => 'selectTypeChanged();','id' => 'id_type');
+        $mform->addElement('select', 'type', get_string('exportcriterions', 'groupevaluation'), $arrayOfOptions, $attributes);
         //$mform->addHelpButton('type', 'weight', 'groupevaluation');
 
 
@@ -59,13 +65,31 @@ class criterion_export_form extends moodleform {
         }
 
         // Select languages
-        $options =  array();
+        //$options =  array();
+        $html = '<div id="id_select_language" style="visibility:hidden">';
+        $html .= '<div id="fitem_id_languaje" class="fitem fitem_fselect ">';
+        $html .= '<div class="fitemtitle">';
+        $html .= '<label for="id_languaje">'.get_string('exportlanguage', 'groupevaluation').' </label>';
+        $html .= '</div>';
+        $html .= '<div class="felement fselect">';
+        $html .= '<select id="id_languaje" name="language">';
         foreach ($languages as $language => $value) {
-          $options[$language] = get_string($value,'groupevaluation');
+          //$options[$language] = get_string($value,'groupevaluation');
+          $selected = '';
+          if ($language == $langaux) {
+            $selected = 'selected="selected"';
+          }
+          $html .= '<option value="'.$language.'" '.$selected.'>'.get_string($value,'groupevaluation').'</option>';
         }
+        $html .= '</select>';
+        $html .= '</div>';
+        $html .= '</div>';
+        $html .= '</div>';
 
-        $mform->addElement('select', 'language', get_string('defaultcriterionslanguage', 'groupevaluation'), $options);
-        $mform->setDefault('language', $langaux);
+        $mform->addElement('html', $html);
+
+        //$mform->addElement('select', 'language', get_string('exportlanguage', 'groupevaluation'), $options, $attributes);
+        //$mform->setDefault('language', $langaux);
 
         // Set a template for the format select elements
         $renderer = $mform->defaultRenderer();

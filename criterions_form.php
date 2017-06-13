@@ -35,7 +35,7 @@ class groupevaluation_criterions_form extends moodleform {
     }
 
     public function definition() {
-        global $CFG, $groupevaluation, $SESSION, $OUTPUT, $cm, $context, $popup, $lang;
+        global $CFG, $groupevaluation, $SESSION, $OUTPUT, $cm, $context, $popup, $lang, $blockwarning;
         global $DB;
         global $languages; // From defaultcriterions.php
 
@@ -59,7 +59,15 @@ class groupevaluation_criterions_form extends moodleform {
         $select = "groupevaluationid = $groupevaluation->id"; //is put into the where clause
         $criterions = $DB->get_records_select($table, $select, null, 'position ASC');
 
-
+        // Weight warning
+        if (!$blockwarning) {
+          $htmlwarning = '<div class="warning-panel">';
+          $htmlwarning .= '<span onclick="this.parentElement.style.display=\'none\'" class="warning-button">&times;</span>';
+          $htmlwarning .= '<img src="'.$OUTPUT->pix_url('i/warning').'"> '.get_string('warning');
+          $htmlwarning .= '<p>'.get_string('weightingwarning', 'groupevaluation').'</p>';
+          $htmlwarning .= '</div>';
+          $mform->addElement('html', $htmlwarning);
+        }
 
         $pos = 0;
 
@@ -428,6 +436,8 @@ class groupevaluation_criterions_form extends moodleform {
         $mform->addElement('hidden', 'action', 'main');
         $mform->setType('action', PARAM_RAW);
         $mform->setType('movecrt', PARAM_RAW);
+        $mform->addElement('hidden', 'blockwarning', 1);
+        $mform->setType('blockwarning', PARAM_INT);
         /*$mform->addElement('hidden', 'hiddenweight',null,array('id'=>'hiddenweight'));
         $mform->setType('hiddenweight', PARAM_INT);*/
     }
@@ -540,6 +550,7 @@ class groupevaluation_edit_criterion_form extends moodleform {
             $mform->setType('weight', PARAM_INT);
             $mform->setDefault('weight', $defaultweight);
             $mform->addElement('static', 'notinclude', '', $weighttext);
+            $mform->addElement('static', 'separator', '<br/>', '');
             $mform->addElement('html', '<input name="auxweight" id="auxweight" type="hidden" value="'.$defaultweight.'" />');
             $mform->addElement('html', '<input name="weight" '.$disabled.' id="id_weight" type="hidden" value="0"/>');
           }
@@ -618,7 +629,8 @@ class groupevaluation_edit_criterion_form extends moodleform {
           $mform->setType('groupevaluationid', PARAM_INT);
           $mform->addElement('hidden', 'numanswers', $numanswers, array('id'=>'numanswers'));
           $mform->setType('numanswers', PARAM_INT);
-
+          $mform->addElement('hidden', 'blockwarning', 1);
+          $mform->setType('blockwarning', PARAM_INT);
           // Buttons.
           /*$attributes = array('onclick' => 'return checkHasAnswers("'.get_string('anansweratleast','groupevaluation').'")');
           $buttonarray[] = &$mform->createElement('submit', 'submitbutton', get_string('savechanges'), $attributes);
@@ -727,6 +739,8 @@ class groupevaluation_confirm_reweight_form extends moodleform {
         $mform->setType('action', PARAM_RAW);
         $mform->addElement('hidden', 'groupevaluationid', $groupevaluation->id);
         $mform->setType('groupevaluationid', PARAM_INT);
+        $mform->addElement('hidden', 'blockwarning', 1);
+        $mform->setType('blockwarning', PARAM_INT);
     }
 
     public function validation($data, $files) {

@@ -32,6 +32,7 @@ $delcrt         = optional_param('delcrt', 0, PARAM_INT);         // criterion i
 $reweight       = optional_param('reweight', 0, PARAM_INT);         // TODO Borrar
 $lang           = optional_param('lang', 'en', PARAM_ALPHA);         //
 $popup          = optional_param('popup', 0, PARAM_INT);         //
+$blockwarning   = optional_param('blockwarning', 0, PARAM_INT);         //
 
 $showpopup = true;
 
@@ -741,12 +742,12 @@ if ($action == "confirmdelcriterion") {
       }
     }
     $strnoteditable = get_string('noteditable', 'groupevaluation');
-    if (groupevaluation_is_open($groupevaluation->timeopen)) {
-      echo $OUTPUT->notification($strnoteditable.' '.get_string('isopen', 'groupevaluation', userdate($groupevaluation->timeopen)));
-    } else if (groupevaluation_is_closed($groupevaluation->timeclose)) {
+    if (groupevaluation_is_closed($groupevaluation->timeclose)) {
       echo $OUTPUT->notification($strnoteditable.' '.get_string('isclosed', 'groupevaluation', userdate($groupevaluation->timeclose)));
+    } else if (groupevaluation_is_open($groupevaluation->timeopen)) {
+      echo $OUTPUT->notification($strnoteditable.' '.get_string('isopen', 'groupevaluation', userdate($groupevaluation->timeopen)));
     } else if ($surveycomplete) {
-      echo $OUTPUT->notification($strnoteditable.' '.get_string('alreadyanswered', 'groupevaluation'));
+      echo $OUTPUT->notification($strnoteditable.' '.$groupevaluationid.': '.$groupevaluationid.' '.get_string('alreadyanswered', 'groupevaluation'));
     } else {
       $criterionsform->display();
     }
