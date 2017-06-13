@@ -34,9 +34,6 @@ if (!isset($SESSION->groupevaluation)) {
 }
 $currenttab = $SESSION->groupevaluation->current_tab;
 
-//$cm      = get_coursemodule_from_id('groupevaluation', $id, 0, false, MUST_EXIST);
-//$context = context_module::instance($cm->id);
-
 $srccriterions = $OUTPUT->pix_url('t/edit');
 $srcpreview = $OUTPUT->pix_url('t/preview');
 $srcgroups = $OUTPUT->pix_url('t/groups');

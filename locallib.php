@@ -29,35 +29,6 @@
 defined('MOODLE_INTERNAL') || die();
 define('groupevaluation_DEFAULT_PAGE_COUNT', 5);
 
-/*
- * TODO Probablemente no utilice esta funcion -> BORRAR
- * Does something really useful with the passed things
- *
- * @param array $things
- * @return object
- *function groupevaluation_do_something_useful(array $things) {
- *    return new stdClass();
- *}
- */
- function groupevaluation_delete_responses($qid) {
-     global $DB;
-
-     $status = true;
-
-     // Delete all of the response data for a criterion.
-     $DB->delete_records('criterionnaire_response_bool', array('criterion_id' => $qid));
-     $DB->delete_records('criterionnaire_response_date', array('criterion_id' => $qid));
-     $DB->delete_records('criterionnaire_resp_multiple', array('criterion_id' => $qid));
-     $DB->delete_records('criterionnaire_response_other', array('criterion_id' => $qid));
-     $DB->delete_records('criterionnaire_response_rank', array('criterion_id' => $qid));
-     $DB->delete_records('criterionnaire_resp_single', array('criterion_id' => $qid));
-     $DB->delete_records('criterionnaire_response_text', array('criterion_id' => $qid));
-
-     $status = $status && $DB->delete_records('criterionnaire_response', array('id' => $qid));
-     $status = $status && $DB->delete_records('criterionnaire_attempts', array('rid' => $qid));
-
-     return $status;
- }
 
  /**
   * Function to move a criterion to a new position.
@@ -100,7 +71,7 @@ define('groupevaluation_DEFAULT_PAGE_COUNT', 5);
  }
 
 
- // Access functions. //TODO Ver si podemos juntar todas para hacer solo una conexion a la base de datos
+ // Access functions.
  function groupevaluation_is_open($timeopen) {
    return ($timeopen > 0) ? ($timeopen < time()) : false;
  }
@@ -186,27 +157,10 @@ function groupevaluation_save_answers($sid, $answers, $done=false) {
   if ($done) {
     $survey->status = groupevaluation_DONE;
   }
+
   $result = $DB->update_record('groupevaluation_surveys', $survey);
-
-  // Update field viewresults in main table
-  //groupevaluation_update_viewresults($groupevaluationid);
 }
 
-//TODO No se utiliza
-function groupevaluation_update_viewresults($groupevaluationid) {
-  $surveys = $DB->get_records('groupevaluation_surveys', array('groupevaluationid' => $groupevaluationid));
-  $allsurveysdone = true;
-
-  foreach ($surveys as $survey) {
-    if ($survey->status != groupevaluation_DONE) {
-      $allsurveysdone = false;
-    }
-  }
-
-  if ($allsurveysdone && $surveys) {
-    $DB->set_field('groupevaluation', 'viewresults', 1, array('id' => $groupevaluationid));
-  }
-}
 function groupevaluation_get_arrow($groupevaluation, $deviation) {
   global $CFG;
   $hardlowerdeviation = $groupevaluation->hardlowerdeviation;
@@ -303,13 +257,3 @@ function groupevaluation_get_editor_options($context) {
                     'trusttext' => 0
     );
 }
-
-/*
-// A variant of Moodle's notify function, with a different formatting.
-function groupevaluation_notify($message) {
-   $message = clean_text($message);
-   $errorstart = '<div class="notifyproblem">';
-   $errorend = '</div>';
-   $output = $errorstart.$message.$errorend;
-   echo $output;
-}*/
