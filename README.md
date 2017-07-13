@@ -1,14 +1,15 @@
 # Group evaluation
 
-Este plugin ofrece una herramienta de valoración y control del funcionamiento del trabajo en equipo, proporcionando los instrumentos necesarios para llevar a cabo esta tarea de supervisión. Tanto para valorar, asignando la nota correspondiente como instancia de actividad, como para corregir o detectar posibles conflictos que puedan surgir.
+This plugin offers a tool to evaluate and control the operation of the team work, providing the necessary tools to carry out this supervision task. Both to value, assigning the corresponding note as activity instance, as to correct or detect possible conflicts that may arise.
 
-El propósito principal es disponer de una herramienta que permita automatizar la gestión de evaluaciones cruzadas en grupo, contemplando otros objetivos específicos como, por ejemplo: 
-●	Flexibilidad, eficiencia, facilidad en la configuración y usabilidad.
-●	Crear “vistas” diferenciadas para profesorado y alumnado, con funcionalidades distintas.
-●	Garantizar el anonimato en las respuestas para alumnos.
-●	Incentivar el desarrollo de competencias propias del trabajo en grupo.
-●	Favorecer la autoevaluación y la evaluación cruzada con el uso de la rúbrica.
+The main purpose is to have a tool that allows automating the management of cross-group evaluations, contemplating other specific objectives such as:
+*Flexibility, efficiency, ease of configuration and usability.
+*Create differentiated "views" for teachers and students, with different functionalities.
+*Ensure anonymity in student responses.
+*Encourage the development of competencies of group work.
+*Encourage self-assessment and cross-evaluation using the rubric.
 
-Para ello, el plugin contaría las siguientes propiedades: un sistema de evaluaciones cruzadas gestionado por el propio módulo, una interfaz para la creación y edición flexible de la encuesta de valoración que tienen que cubrir los alumnos participantes, una presentación de resultados con informes globales e individuales de la evaluación en forma de gráficas y con diferentes vistas y una sección de avisos para facilitar el envío de información a los participantes.
+To do this, the plugin has the following properties: a cross-evaluation system managed by the module itself, an interface for the creation and flexible edition of the evaluation survey that the participating students have to cover, a presentation of results with global reports and Individual evaluations in the form of graphs and with different views and a section of notices to facilitate the sending of information to the participants.
 
-El plugin Evaluación de grupo es un módulo tipo Actividad que permite automatizar el proceso de evaluación mediante rúbricas y encuestas de valoración, que es el procedimiento general utilizado por los/las docentes para evaluar el trabajo en grupo. Gracias a las facilidades que ofrece debido a su integración en la plataforma y la automatización y gestión de tareas, además de la presentación visual de los resultados de las evaluaciones cruzadas, se intenta favorecer tanto la gestión de los grupos por parte de la docencia, como la motivación del alumnado que participe en los trabajos en grupo.
+The Group Evaluation plugin is an Activity type module that allows the automation of the evaluation process through rubrics and evaluation surveys, which is the general procedure used by teachers to evaluate group work. Thanks to the facilities offered due to its integration in the platform and the automation and management of tasks, in addition to the visual presentation of the results of the cross-evaluations, it is tried to favor both the management of the groups by the teaching, as motivation of the students who participate in the group work.
+
