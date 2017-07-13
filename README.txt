@@ -1,53 +1,12 @@
-The following steps should get you up and running with
-this module template code.
+This plugin offers a tool to evaluate and control the operation of the team work, providing the necessary tools to carry out this supervision task. Both to value, assigning the corresponding note as activity instance, as to correct or detect possible conflicts that may arise.
 
-* DO NOT PANIC!
+The main purpose is to have a tool that allows automating the management of cross-group evaluations, contemplating other specific objectives such as:
+● Flexibility, efficiency, ease of configuration and usability.
+● Create differentiated "views" for teachers and students, with different functionalities.
+● Ensure anonymity in student responses.
+● Encourage the development of competencies of group work.
+● Encourage self-assessment and cross-evaluation using the rubric.
 
-* Unzip the archive and read this file
+To do this, the plugin has the following properties: a cross-evaluation system managed by the module itself, an interface for the creation and flexible edition of the evaluation survey that the participating students have to cover, a presentation of results with global reports and Individual evaluations in the form of graphs and with different views and a section of notices to facilitate the sending of information to the participants.
 
-* Rename the groupevaluation/ folder to the name of your module (eg "widget").
-  The module folder MUST be lower case and can't contain underscores. You should check the CVS contrib
-  area at http://cvs.moodle.org/contrib/plugins/mod/ to make sure that
-  your name is not already used by an other module. Registering the plugin
-  name @ http://moodle.org/plugins will secure it for you.
-
-* Edit all the files in this directory and its subdirectories and change
-  all the instances of the string "groupevaluation" to your module name
-  (eg "widget"). If you are using Linux, you can use the following command
-  $ find . -type f -exec sed -i 's/groupevaluation/widget/g' {} \;
-  $ find . -type f -exec sed -i 's/groupevaluation/WIDGET/g' {} \;
-
-  On a mac, use:
-  $ find . -type f -exec sed -i '' 's/groupevaluation/widget/g' {} \;
-  $ find . -type f -exec sed -i '' 's/groupevaluation/WIDGET/g' {} \;
-
-* Rename the file lang/en/groupevaluation.php to lang/en/widget.php
-  where "widget" is the name of your module
-
-* Rename all files in backup/moodle2/ folder by replacing "groupevaluation" with
-  the name of your module
-
-  On Linux you can perform this and previous steps by calling:
-  $ find . -depth -name '*groupevaluation*' -execdir bash -c 'mv -i "$1" "${1//groupevaluation/widget}"' bash {} \;
-
-* Place the widget folder into the /mod folder of the moodle
-  directory.
-
-* Modify version.php and set the initial version of you module.
-
-* Visit Settings > Site Administration > Notifications, you should find
-  the module's tables successfully created
-
-* Go to Site Administration > Plugins > Activity modules > Manage activities
-  and you should find that this groupevaluation has been added to the list of
-  installed modules.
-
-* You may now proceed to run your own code in an attempt to develop
-  your module. You will probably want to modify mod_form.php and view.php
-  as a first step. Check db/access.php to add capabilities.
-  Go to Settings > Site Administration > Development > XMLDB editor
-  and modify the module's tables.
-
-We encourage you to share your code and experience - visit http://moodle.org
-
-Good luck!
+The Group Evaluation plugin is an Activity type module that allows the automation of the evaluation process through rubrics and evaluation surveys, which is the general procedure used by teachers to evaluate group work. Thanks to the facilities offered due to its integration in the platform and the automation and management of tasks, in addition to the visual presentation of the results of the cross-evaluations, it is tried to favor both the management of the groups by the teaching, as motivation of the students who participate in the group work.
