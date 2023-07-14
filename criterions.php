@@ -23,7 +23,7 @@
 require_once("../../config.php");
 require_once($CFG->dirroot.'/mod/groupevaluation/criterions_form.php');
 require_once($CFG->dirroot.'/mod/groupevaluation/locallib.php');
-
+print("hola");
 /*optional_param($parname, $saved, $type)*/
 $id             = required_param('id', PARAM_INT);                // Course module ID
 $action         = optional_param('action', 'main', PARAM_ALPHA);  // Screen.
@@ -35,7 +35,7 @@ $popup          = optional_param('popup', 0, PARAM_INT);         //
 $blockwarning   = optional_param('blockwarning', 0, PARAM_INT);         //
 
 $showpopup = true;
-
+print("hola");
 //$selectweight   = optional_param('selectweight', 0);   //
 
 // Check if the module instance exists

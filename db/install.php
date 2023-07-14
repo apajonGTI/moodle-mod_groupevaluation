@@ -33,34 +33,69 @@
  */
 function xmldb_groupevaluation_install() {
   global $DB, $CFG;
-  require_once($CFG->dirroot.'/mod/groupevaluation/defaultcriterions.php');
 
-  foreach ($languages as $language => $value) {
-    $code = $language.'_';
 
-    foreach ($defaultcriterions as $defaultcriterion) {
-      $criterionrecord = new stdClass();
-      $criterionrecord->name = $crtstring[$code.$defaultcriterion];
-      $criterionrecord->text = $crtstring[$code.$defaultcriterion.'_desc'];
-      $criterionrecord->saved = 1;
-      $criterionrecord->timecreated = time();
-      $criterionrecord->defaultcriterion = 1;
-      $criterionrecord->languagecode = $language;
-      $criterionid = $DB->insert_record('groupevaluation_criterions', $criterionrecord);
-
-      // Create tags for this criterion
-      for ($i = 1; $i <= 5; $i++) {
-        $tagrecord = new stdClass();
-        $tagrecord->criterionid = $criterionid;
-        $tagrecord->text = $crtstring[$code.$defaultcriterion.'_ans'.$i];
-        $tagrecord->value = $i * 20;
-        $tagrecord->position = 6 - $i;
-        $tagrecord->timemodified = $criterionrecord->timecreated;
-
-        $resulttag = $DB->insert_record('groupevaluation_tags', $tagrecord);
+  $path = $CFG->dirroot."/mod/groupevaluation/lang/";
+  $dir = opendir($path);
+  while($current = readdir($dir)){
+      if($current != "." && $current != ".."){
+          if(is_dir($path.$current)){
+              require($CFG->dirroot.'/mod/groupevaluation/lang/'.$current.'/groupevaluation.php');
+              print($CFG->dirroot.'/mod/groupevaluation/lang/'.$current.'/groupevaluation.php');
+              foreach ($defaultcriterions as $defaultcriterion) {
+                $criterionrecord = new stdClass();
+                print($crtstring[$defaultcriterion]);
+                $criterionrecord->name = $crtstring[$defaultcriterion];
+                $criterionrecord->text = $crtstring[$defaultcriterion.'_desc'];
+                $criterionrecord->saved = 1;
+                $criterionrecord->timecreated = time();
+                $criterionrecord->defaultcriterion = 1;
+                $criterionrecord->languagecode = $current;
+                $criterionid = $DB->insert_record('groupevaluation_criterions', $criterionrecord);
+          
+                // Create tags for this criterion
+                for ($i = 1; $i <= 5; $i++) {
+                  $tagrecord = new stdClass();
+                  $tagrecord->criterionid = $criterionid;
+                  $tagrecord->text = $crtstring[$defaultcriterion.'_ans'.$i];
+                  $tagrecord->value = $i * 20;
+                  $tagrecord->position = 6 - $i;
+                  $tagrecord->timemodified = $criterionrecord->timecreated;
+          
+                  $resulttag = $DB->insert_record('groupevaluation_tags', $tagrecord);
+                }
+              }
+          }
       }
-    }
   }
+
+
+  // foreach ($languages as $language => $value) {
+  //   $code = $language.'_';
+
+  //   foreach ($defaultcriterions as $defaultcriterion) {
+  //     $criterionrecord = new stdClass();
+  //     $criterionrecord->name = $crtstring[$code.$defaultcriterion];
+  //     $criterionrecord->text = $crtstring[$code.$defaultcriterion.'_desc'];
+  //     $criterionrecord->saved = 1;
+  //     $criterionrecord->timecreated = time();
+  //     $criterionrecord->defaultcriterion = 1;
+  //     $criterionrecord->languagecode = $language;
+  //     $criterionid = $DB->insert_record('groupevaluation_criterions', $criterionrecord);
+
+  //     // Create tags for this criterion
+  //     for ($i = 1; $i <= 5; $i++) {
+  //       $tagrecord = new stdClass();
+  //       $tagrecord->criterionid = $criterionid;
+  //       $tagrecord->text = $crtstring[$code.$defaultcriterion.'_ans'.$i];
+  //       $tagrecord->value = $i * 20;
+  //       $tagrecord->position = 6 - $i;
+  //       $tagrecord->timemodified = $criterionrecord->timecreated;
+
+  //       $resulttag = $DB->insert_record('groupevaluation_tags', $tagrecord);
+  //     }
+  //   }
+  // }
 }
 
 /**
@@ -70,3 +105,4 @@ function xmldb_groupevaluation_install() {
  */
 function xmldb_groupevaluation_install_recovery() {
 }
+

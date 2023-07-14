@@ -118,7 +118,7 @@ if (($addsubmit && is_array($addgroup)) || ($removesubmit && is_array($removegro
 // GET GROUPS //
 $groups = $DB->get_records("groups", array("courseid" => $cm->course));
 $countgroups = count($groups);
-$query = 'SELECT DISTINCT groupid FROM mdl_groupevaluation_surveys WHERE groupevaluationid = ?';
+$query = 'SELECT DISTINCT groupid FROM {groupevaluation_surveys} WHERE groupevaluationid = ?';
 $groupsadded = $DB->get_records_sql($query, array($groupevaluation->id));
 $countgroupsadded = count($groupsadded);
 

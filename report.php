@@ -106,8 +106,8 @@ $where = 'groupevaluationid = '.$groupevaluation->id;
 if (($viewmode == 'crossevaluations') || ($viewmode == 'criterions')) {
   $where .= ' AND groupid = '.$groupid;
 }
-$select = 'SELECT DISTINCT userid FROM mdl_groupevaluation_surveys WHERE '.$where;
-$query = 'SELECT * FROM mdl_user WHERE id IN ('.$select.') ORDER BY '.$orderby;
+$select = 'SELECT DISTINCT userid FROM {groupevaluation_surveys} WHERE '.$where;
+$query = 'SELECT * FROM {user} WHERE id IN ('.$select.') ORDER BY '.$orderby;
 $participants = $DB->get_records_sql($query);
 $countparticipants = count($participants);
 
@@ -116,8 +116,8 @@ $grading_info = grade_get_grades($groupevaluation->course, 'mod', 'groupevaluati
 $grades = $grading_info->items[0]->grades;
 
 // GET GROUPS //
-$select = 'SELECT DISTINCT groupid FROM mdl_groupevaluation_surveys WHERE groupevaluationid = '.$groupevaluation->id;
-$query = 'SELECT * FROM mdl_groups WHERE id IN ('.$select.') ORDER BY name';
+$select = 'SELECT DISTINCT groupid FROM {groupevaluation_surveys} WHERE groupevaluationid = '.$groupevaluation->id;
+$query = 'SELECT * FROM {groups} WHERE id IN ('.$select.') ORDER BY name';
 $surveygroups = $DB->get_records_sql($query);
 
 // Get the responses of given user.
@@ -357,8 +357,8 @@ if (!$participants) {
         if ($viewmode == 'criterions') {
 
           $where = 'userid = '.$userid.' AND authorid = '.$author->id.' AND groupevaluationid = '.$groupevaluation->id;
-          $query = 'SELECT * FROM mdl_groupevaluation_assessments WHERE surveyid IN ('.
-                    'SELECT DISTINCT id FROM mdl_groupevaluation_surveys WHERE '.$where.') AND criterionid = '.$criterion->id;
+          $query = 'SELECT * FROM {groupevaluation_assessments} WHERE surveyid IN ('.
+                    'SELECT DISTINCT id FROM {groupevaluation_surveys} WHERE '.$where.') AND criterionid = '.$criterion->id;
           $answer = $DB->get_record_sql($query);
 
           $weightedsumauthor = '-';
@@ -368,16 +368,16 @@ if (!$participants) {
 
         } else {
           $where = 'userid = '.$userid.' AND authorid = '.$author->id.' AND groupevaluationid = '.$groupevaluation->id;
-          $query = 'SELECT * FROM mdl_groupevaluation_assessments WHERE surveyid IN ('.
-                    'SELECT DISTINCT id FROM mdl_groupevaluation_surveys WHERE '.$where.')';
+          $query = 'SELECT * FROM {groupevaluation_assessments} WHERE surveyid IN ('.
+                    'SELECT DISTINCT id FROM {groupevaluation_surveys} WHERE '.$where.')';
           $answers = $DB->get_records_sql($query);
 
           // Calculate the weight taking into account the criterions answered, maintaining the proportions.
           // Normalize weight
           $baseweigh = 0;
-          $query2 = 'SELECT * FROM mdl_groupevaluation_criterions WHERE id IN ('.
-                    'SELECT DISTINCT criterionid FROM mdl_groupevaluation_assessments WHERE surveyid IN ('.
-                    'SELECT DISTINCT id FROM mdl_groupevaluation_surveys WHERE '.$where.'))';
+          $query2 = 'SELECT * FROM {groupevaluation_criterions} WHERE id IN ('.
+                    'SELECT DISTINCT criterionid FROM {groupevaluation_assessments} WHERE surveyid IN ('.
+                    'SELECT DISTINCT id FROM {groupevaluation_surveys} WHERE '.$where.'))';
           $criterionsweights = $DB->get_records_sql($query2);
           foreach ($criterionsweights as $criterionsweight) {
             $baseweigh = $baseweigh + $criterionsweight->weight;
@@ -476,8 +476,8 @@ if (!$participants) {
           $groupmembers = array();
 
           // In case a user belongs to several groups
-          $query = 'SELECT * FROM mdl_groups WHERE id IN (SELECT DISTINCT groupid FROM mdl_groups_members WHERE userid=?) '.
-                  'AND id IN (SELECT DISTINCT groupid FROM mdl_groupevaluation_surveys WHERE groupevaluationid=?)';
+          $query = 'SELECT * FROM {groups} WHERE id IN (SELECT DISTINCT groupid FROM {groups_members} WHERE userid=?) '.
+                  'AND id IN (SELECT DISTINCT groupid FROM {groupevaluation_surveys} WHERE groupevaluationid=?)';
           $groups = $DB->get_records_sql($query, array($userid, $groupevaluation->id));
 
           foreach ($groups as $group) {

@@ -21,7 +21,9 @@
  */
 
 require_once($CFG->dirroot.'/course/moodleform_mod.php');
-require_once($CFG->dirroot.'/mod/groupevaluation/defaultcriterions.php');
+require_once($CFG->dirroot.'/mod/groupevaluation/locallib.php');
+$lang = get_language();
+require($CFG->dirroot.'/mod/groupevaluation/lang/'.$lang.'/groupevaluation.php');
 
 //require_once($CFG->dirroot.'/mod/groupevaluation/criteriontypes/criteriontypes.class.php');
 
@@ -98,7 +100,7 @@ class groupevaluation_criterions_form extends moodleform {
         <li class="add-menu">
           <a onclick="popupSavedCriterions()">
             <img class="iconsmall" alt="" src="'.$srcadd.'">
-            <span class="menu-action-text"> '.get_string('addfromcrtbank', 'groupevaluation').'</span>
+            <span style="color:black" class="menu-action-text"> '.get_string('addfromcrtbank', 'groupevaluation').'</span>
           </a>
         </li>
         </div>');
@@ -269,16 +271,11 @@ class groupevaluation_criterions_form extends moodleform {
         }
 
         // Default language
-        $currentlanguaje = current_language();
-        if (in_array($currentlanguaje, $languages)) { // $languages from defaultcriterions.php
-          $langaux = $currentlanguaje;
-        } else {
-          $langaux = 'en';
-        }
+        $langaux = get_language(); 
+        print('Idioma->>'.$langaux);
         if ($lang) {
           $langaux = $lang;
-        }
-
+        }else $lang = $langaux;
 
         // Select defaultcriterions || savedcriterions
         $options =  array(1 => get_string('defaultcriterions','groupevaluation'),
@@ -343,7 +340,7 @@ class groupevaluation_criterions_form extends moodleform {
         $savedcriterions = $DB->get_records_select($table, $select);
 
         if (!$savedcriterions) {
-          $mform->addElement('html', '<div class="alert alert-error">'.get_string('nocriterionsstored', 'groupevaluation').'</div>');
+          $mform->addElement('html', '<div class="alert alert-error">'.get_string('nocriterionsstored', 'groupevaluation').$langaux.'</div>');
         }
 
         $pos = 1;

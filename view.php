@@ -28,6 +28,9 @@
 require_once(dirname(dirname(dirname(__FILE__))).'/config.php');
 require_once(dirname(__FILE__).'/lib.php');
 require_once($CFG->dirroot.'/mod/groupevaluation/locallib.php');
+$lang = get_language();
+require($CFG->dirroot.'/mod/groupevaluation/lang/'.$lang.'/groupevaluation.php');
+
 
 $id = optional_param('id', 0, PARAM_INT); // Course_module ID, or
 $n  = optional_param('n', 0, PARAM_INT);  // ... groupevaluation instance ID - it should be named as the first character of the module.
@@ -125,13 +128,13 @@ if (has_capability('mod/groupevaluation:editsurvey', $context)) {
   if (!$result) {
     echo '<p>'.get_string('nosurvey', 'groupevaluation').'</p>';
     $href = $CFG->wwwroot.htmlspecialchars('/mod/groupevaluation/criterions.php?'.'id='.$cm->id);
-    echo '<a href="'.$href.'" class="btn btn-default btn-lg" role="button">'.get_string("createsurvey", "groupevaluation").'</a>';
+    echo '<a href="'.$href.'" class="btn btn-default btn-lg" style = "border: 2px solid #d0d0d0;" role="button">'.get_string("createsurvey", "groupevaluation").'</a>';
   } else {
     $href = $CFG->wwwroot.htmlspecialchars('/mod/groupevaluation/criterions.php?'.'id='.$cm->id);
-    echo '<a href="'.$href.'" class="btn btn-default btn-lg" role="button">'.get_string("editsurvey", "groupevaluation").'</a><br/>';
+    echo '<a href="'.$href.'" class="btn btn-default btn-lg"  style = "border: 2px solid #d0d0d0;" role="button">'.get_string("editsurvey", "groupevaluation").'</a><br/>';
     echo '<div style="height: 10px"></div>';
     $href = $CFG->wwwroot.htmlspecialchars('/mod/groupevaluation/groups.php?'.'id='.$cm->id);
-    echo '<a href="'.$href.'" class="btn btn-default btn-lg" role="button">'.get_string("setgroups", "groupevaluation").'</a>';
+    echo '<a href="'.$href.'" class="btn btn-default btn-lg"  style = "border: 2px solid #d0d0d0;" role="button">'.get_string("setgroups", "groupevaluation").'</a>';
   }
 } else { // Unprivileged user
 
@@ -187,10 +190,10 @@ if (has_capability('mod/groupevaluation:editsurvey', $context)) {
       echo $OUTPUT->heading($profilelink, 5, 'helptitle', 'uniqueid');
 
       if ($status == groupevaluation_INCOMPLETE) {
-        echo '<div><a href="'.$href.'" class="btn btn-default btn-lg" role="button">'.get_string('evaluate', 'groupevaluation').'</a></div>';
+        echo '<div><a href="'.$href.'" class="btn btn-default btn-lg"  style = "border: 2px solid #d0d0d0;" role="button">'.get_string('evaluate', 'groupevaluation').'</a></div>';
       } elseif ($status == groupevaluation_COMPLETE) {
         echo '<div>';
-        echo '<a href="'.$href.'" class="btn btn-default btn-lg" role="button">'.get_string('evaluate', 'groupevaluation').'</a>';
+        echo '<a href="'.$href.'" class="btn btn-default btn-lg"  style = "border: 2px solid #d0d0d0;" role="button">'.get_string('evaluate', 'groupevaluation').'</a>';
         echo '<span style="color:red;"> '.get_string('inprogress', 'groupevaluation').'</span>';
         echo '<span> ('.get_string('notsubmitted', 'groupevaluation').')</span>';
         echo '</div>';

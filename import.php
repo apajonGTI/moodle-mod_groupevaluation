@@ -30,7 +30,7 @@ require_once($CFG->dirroot . '/mod/groupevaluation/import_form.php');
 require_once($CFG->dirroot.'/mod/groupevaluation/locallib.php');
 
 
-$id             = required_param('id', PARAM_INT);                // Course module ID
+$id = required_param('id', PARAM_INT);                // Course module ID
 
 
 // Check if the module instance exists

@@ -28,7 +28,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 define('groupevaluation_DEFAULT_PAGE_COUNT', 5);
-
+$languages =  array('en' => 'english', 'es' => 'spanish', 'gl' => 'galician');
 
  /**
   * Function to move a criterion to a new position.
@@ -41,7 +41,6 @@ define('groupevaluation_DEFAULT_PAGE_COUNT', 5);
 
  function move_criterion($criterions, $movecrtid, $movetopos) {
      global $DB;
-     $table = "mdl_groupevaluation_criterions";
      $column = "position";
 
      $movecriterion = $criterions[$movecrtid];
@@ -55,13 +54,13 @@ define('groupevaluation_DEFAULT_PAGE_COUNT', 5);
              if ($criterion->id == $movecriterion->id) {
                  $movecriterion->position = $movetopos;
                  //$DB->update_record("groupevaluation_criterions", new stdClass($movecriterion));
-                 $DB->execute("UPDATE $table SET $column=? WHERE id=?", array($movetopos, $movecriterion->id));
+                 $DB->execute("UPDATE {groupevaluation_criterions} SET $column=? WHERE id=?", array($movetopos, $movecriterion->id));
 
                  continue;
              }
              $criterion->position = $index;
              //$DB->update_record("groupevaluation_criterions", $criterion);
-             $DB->execute("UPDATE $table SET $column=? WHERE id=?", array($index, $criterion->id));
+             $DB->execute("UPDATE {groupevaluation_criterions} SET $column=? WHERE id=?", array($index, $criterion->id));
 
              $index++;
          }
@@ -257,3 +256,16 @@ function groupevaluation_get_editor_options($context) {
                     'trusttext' => 0
     );
 }
+
+function get_language(){
+  require_once("../../config.php");
+  $languages =  array('en', 'es', 'gl');
+  $currentlanguage  = substr(current_language(), 0, 2);
+  if (in_array($currentlanguage, $languages)) { 
+    $lang = $currentlanguage;
+  } else {
+    $lang = 'en';
+  }
+  return $lang;
+}
+

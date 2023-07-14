@@ -95,6 +95,8 @@ function addAnswer(stranswer, strvalue, strposition, srcdragdrop, strmoveanswer)
     // Container <div> where dynamic content will be placed
     var answerscontainer = document.getElementById("answerscontainer");
     n = answerscontainer.childElementCount + 1;
+    console.log(stranswer,strvalue,strposition,srcdragdrop,strmoveanswer)
+    console.log(n)
 
     //Update value of hidden element "numanswers"
     document.getElementById("numanswers").value = n;
@@ -123,7 +125,7 @@ function addAnswer(stranswer, strvalue, strposition, srcdragdrop, strmoveanswer)
       texto += "</select><br/>";
       texto += "<input class=\"tagposition\" name=\"tagposition_" + i + "\" id=\"tagposition_" + i + "\" value=\"" + tagposition.value + "\" type=\"hidden\" />";
 
-      document.getElementById("fitem_id_tag_" + i).firstChild.firstChild.innerHTML = texto;
+      document.getElementById("fitem_id_tag_" + i).firstChild.innerHTML = texto;
     }
 
     var qoptcontainer = document.createElement("div");
@@ -214,8 +216,8 @@ function removeAnswers(stranswer, strvalue, strposition, srcdragdrop, strmoveans
         texto += "</select><br/>";
         texto += "<input class=\"tagposition\" name=\"tagposition_" + i + "\" id=\"tagposition_" + i + "\" value=\"" + tagposition.value + "\" type=\"hidden\" />";
 
-        document.getElementById("fitem_id_tag_" + i_old).firstChild.firstChild.innerHTML = texto;
-        document.getElementById("fitem_id_tag_" + i_old).firstChild.firstChild.setAttribute("for", "id_tag_" + i);
+        document.getElementById("fitem_id_tag_" + i_old).firstChild.innerHTML = texto;
+        document.getElementById("fitem_id_tag_" + i_old).firstChild.setAttribute("for", "id_tag_" + i);
 
         document.getElementById("fitem_id_tag_" + i_old).id = "fitem_id_tag_" + i;
         document.getElementById("qoptcontainer_" + i_old).id = "qoptcontainer_" + i;

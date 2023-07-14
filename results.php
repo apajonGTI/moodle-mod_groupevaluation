@@ -127,8 +127,8 @@ if ($groupid != 0) { // TODO Probablemente quite el param groupid
   $wheregroupid = 'AND id = '.$groupid;
 }
 // In case a user belongs to several groups
-$query = 'SELECT * FROM mdl_groups WHERE id IN (SELECT DISTINCT groupid FROM mdl_groups_members WHERE userid=?) '.
-        'AND id IN (SELECT DISTINCT groupid FROM mdl_groupevaluation_surveys WHERE groupevaluationid=?) '.$wheregroupid;
+$query = 'SELECT * FROM {groups} WHERE id IN (SELECT DISTINCT groupid FROM {groups_members} WHERE userid=?) '.
+        'AND id IN (SELECT DISTINCT groupid FROM {groupevaluation_surveys} WHERE groupevaluationid=?) '.$wheregroupid;
 $groups = $DB->get_records_sql($query, array($userid, $groupevaluation->id));
 
 // GET CRITERIONS //
@@ -234,7 +234,7 @@ if (!$isclosed && !has_capability('mod/groupevaluation:readresponses', $context)
     $groupid = $group->id;
 
     // GET GROUP MEMBERS //
-    $query = 'SELECT * FROM mdl_user WHERE id IN (SELECT DISTINCT userid FROM mdl_groups_members WHERE groupid=?)'.
+    $query = 'SELECT * FROM {user} WHERE id IN (SELECT DISTINCT userid FROM {groups_members} WHERE groupid=?)'.
               'ORDER BY '.$orderby;
     $groupmembers = $DB->get_records_sql($query, array($groupid));
 
@@ -372,8 +372,8 @@ if (!$isclosed && !has_capability('mod/groupevaluation:readresponses', $context)
       $minimum = 100;
       foreach ($groupmembers as $groupmember) {
         $where = 'userid = '.$userid.' AND authorid = '.$groupmember->id.' AND groupevaluationid = '.$groupevaluation->id;
-        $query = 'SELECT * FROM mdl_groupevaluation_assessments WHERE surveyid IN ('.
-                  'SELECT DISTINCT id FROM mdl_groupevaluation_surveys WHERE '.$where.
+        $query = 'SELECT * FROM {groupevaluation_assessments} WHERE surveyid IN ('.
+                  'SELECT DISTINCT id FROM {groupevaluation_surveys} WHERE '.$where.
                   ') AND criterionid = '.$criterionid;
         $answer = $DB->get_record_sql($query);
 

@@ -27,6 +27,51 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+
+$defaultcriterions = array('crtteamwork', 'crtinteraction', 'crtkeepinggroup', 'crtquality', 'crtabilities');
+
+// --------- Default criterions ENGLISH ----------------------
+$crtstring['crtteamwork'] = 'Contribution to Teamwork';
+$crtstring['crtteamwork_desc'] = 'Contribution to Teamwork';
+$crtstring['crtteamwork_ans5'] = 'Makes more work or higher quality than expected. Make important contributions that improve the work of the team. It helps teammates who are having difficulty completing their work.';
+$crtstring['crtteamwork_ans4'] = 'Demonstrates behaviors described in the immediate higher or lower  level.';
+$crtstring['crtteamwork_ans3'] = 'Completes reasonable participation in the work of the team with acceptable quality. Maintains the commitments and fulfills its tasks in time. It helps your teammates who are having difficulty when it is easy or important.';
+$crtstring['crtteamwork_ans2'] = 'Demonstrates behaviors described in the next higher or lower level.';
+$crtstring['crtteamwork_ans1'] = 'Does not make a reasonable participation in the work of the team. Deliver a sloppy or incomplete job. Does not meet deadlines. He is late, does not prepare the topics, or does not attend team meetings. It does not help teammates. Leave the job if it becomes difficult.';
+
+$crtstring['crtinteraction'] = 'Interaction with groupmates';
+$crtstring['crtinteraction_desc'] = 'Interaction with groupmates';
+$crtstring['crtinteraction_ans5'] = 'Ask your teammates for feedback and use their suggestions for improvement. Provides encouragement or enthusiasm to the team. He makes sure that his teammates stay informed and understand each other. Ask and show interest in the ideas and contributions of teammates.';
+$crtstring['crtinteraction_ans4'] = 'Demonstrates behaviors described in the immediate higher or lower  level.';
+$crtstring['crtinteraction_ans3'] = 'Respect and respond to comments from your teammates. Fully participate in team activities. Communicate clearly. Share information with your peers. Listen to your teammates and respect their contributions.';
+$crtstring['crtinteraction_ans2'] = 'Demonstrates behaviors described in the next higher or lower level.';
+$crtstring['crtinteraction_ans1'] = 'Usually defensive. He does not accept the help or advice of his teammates. He complains, gives excuses, or does not interact with his teammates. He does actions that affect his teammates without evaluating his opinion. Does not share information. He interrupts, ignores, or mocks his teammates.';
+
+$crtstring['crtkeepinggroup'] = 'Keep the group running';
+$crtstring['crtkeepinggroup_desc'] = 'Keep the group running';
+$crtstring['crtkeepinggroup_ans5'] = 'Controls the conditions affecting the equipment and monitors the progress of the equipment. Make sure your teammates are making the appropriate progress. Provides specific information to teammates, in a timely and constructive manner.';
+$crtstring['crtkeepinggroup_ans4'] = 'Demonstrates behaviors described in the immediate higher or lower  level.';
+$crtstring['crtkeepinggroup_ans3'] = 'Notices of changes that influence the success of the team. He knows what everyone on the team should be doing and realizes the problems. Alerts your teammates or suggests solutions when team success is threatened.';
+$crtstring['crtkeepinggroup_ans2'] = 'Demonstrates behaviors described in the next higher or lower level.';
+$crtstring['crtkeepinggroup_ans1'] = 'Not aware of whether the team is meeting its objectives. Does not pay attention to the progress of teammates. Avoid discussing team issues, even when they are obvious.';
+
+$crtstring['crtquality'] = 'Expected quality';
+$crtstring['crtquality_desc'] = 'Expected quality';
+$crtstring['crtquality_ans5'] = 'Motivates the team to do an excellent job. He cares that the team does an extraordinary job, even if there is no additional reward. He thinks the team can do an excellent job.';
+$crtstring['crtquality_ans4'] = 'Demonstrates behaviors described in the immediate higher or lower  level.';
+$crtstring['crtquality_ans3'] = 'Encourage the team to do a good job that meets all the requirements. He wants the team to work well enough to get all the prizes available. It considers that the team can fully fulfill its responsibilities.';
+$crtstring['crtquality_ans2'] = 'Demonstrates behaviors described in the next higher or lower level.';
+$crtstring['crtquality_ans1'] = 'Satisfied even if the equipment does not meet the stipulated standards. He wants the team to work less, even if it affects the team. Doubt that the team can fulfill its objectives.';
+
+$crtstring['crtabilities'] = 'Knowledge, skills and abilities';
+$crtstring['crtabilities_desc'] = 'Knowledge, skills and abilities';
+$crtstring['crtabilities_ans5'] = 'Demonstrates the knowledge, skills and abilities to do an excellent job. Acquire new knowledge or skills to improve team performance. Able to play the role of any team member if necessary.';
+$crtstring['crtabilities_ans4'] = 'Demonstrates behaviors described in the immediate higher or lower  level.';
+$crtstring['crtabilities_ans3'] = 'Demonstrates sufficient knowledge, skills, and abilities to contribute to the team\'s work. Acquire the knowledge or skills necessary to meet the requirements. Able to perform some of the tasks normally performed by other team members.';
+$crtstring['crtabilities_ans2'] = 'Demonstrates behaviors described in the next higher or lower level.';
+$crtstring['crtabilities_ans1'] = 'Lack of basic training necessary to be a member of the team. He can not or does not want to develop the knowledge or skills necessary to contribute to the team. You can not do any of the roles of other team members.';
+
+
 $string['accept'] = 'Accept';
 $string['addanswer'] = 'Add answer';
 $string['addcriterion'] = 'Add criterion';
@@ -263,3 +308,7 @@ $string['yourfileshoulddownload'] = 'Your export file should start to download s
 $string['yourresponse'] = 'Your response';
 $string['yourresponses'] = 'Your responses';
 $string['z'] = 'z';
+
+
+
+
